@@ -3,133 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบลาออนไลน์ (แผนกสุขาภิบาล)</title>
+    <title>ระบบลาออนไลน์ (Sanitation Cute ✨)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;800&display=swap" rel="stylesheet">
     
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-
+    
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://unpkg.com/@pdf-lib/fontkit@0.0.4/dist/fontkit.umd.min.js"></script>
 
     <style>
-        body { font-family: 'Sarabun', sans-serif; }
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            background: linear-gradient(135deg, #fdfbf7 0%, #eef2f3 100%);
+        }
+        .pastel-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+        .btn-pastel {
+            transition: all 0.3s ease;
+        }
+        .btn-pastel:active { transform: scale(0.95); }
         .hidden-section { display: none; }
-        .loader { border-top-color: #3498db; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="text-gray-700">
 
-    <div id="loading-screen" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
-        <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-16 w-16 mb-4"></div>
-        <p class="text-gray-500 text-xl font-bold">กำลังเชื่อมต่อฐานข้อมูล...</p>
+    <div id="loading-screen" class="fixed inset-0 bg-pink-50 z-50 flex flex-col items-center justify-center">
+        <div class="animate-bounce text-6xl mb-4">🐰</div>
+        <p class="text-pink-400 text-xl font-bold animate-pulse">กำลังโหลดข้อมูลนะจ๊ะ...</p>
     </div>
 
-    <div id="screen-home" class="container mx-auto px-4 py-10 max-w-2xl hidden-section">
-        <div class="text-center mb-10">
-            <h1 class="text-3xl font-bold text-blue-800">ระบบลาออนไลน์</h1>
-            <p class="text-gray-600 mt-2">แผนกสุขาภิบาล กองเวชศาสตร์ป้องกัน กรมแพทย์ทหารอากาศ</p>
+    <div id="screen-home" class="min-h-screen flex flex-col items-center justify-center px-4 py-10 hidden-section bg-gradient-to-b from-pink-50 to-blue-50">
+        
+        <div class="text-center mb-8">
+            <div class="text-6xl mb-2">🏥✨</div>
+            <h1 class="text-3xl font-extrabold text-gray-700">ระบบใบลาออนไลน์</h1>
+            <p class="text-gray-500 mt-2">แผนกสุขาภิบาล คนหน้าตาดี 💖</p>
         </div>
 
-        <div class="mb-6 relative">
-            <input type="text" id="searchInput" placeholder="พิมพ์ชื่อเพื่อค้นหา..." 
-                   class="w-full p-4 text-xl border-2 border-blue-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                   onkeyup="filterUsers()">
-        </div>
-
-        <div id="userList" class="grid gap-3 max-h-96 overflow-y-auto">
-            </div>
-    </div>
-
-    <div id="screen-dashboard" class="hidden-section container mx-auto px-4 py-6 max-w-4xl">
-        <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow mb-6">
-            <div class="flex items-center">
-                <div class="h-12 w-12 bg-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold mr-4">
-                    <span id="user-initial">?</span>
-                </div>
-                <div>
-                    <h2 id="user-fullname" class="text-xl font-bold text-gray-800">...</h2>
-                    <p id="user-rank" class="text-gray-500 text-sm">...</p>
-                </div>
-            </div>
-            <button onclick="goHome()" class="text-red-500 border border-red-500 px-4 py-2 rounded hover:bg-red-50">ออก</button>
-        </div>
-
-        <div class="flex mb-6 border-b border-gray-300">
-            <button onclick="switchTab('request')" id="btn-tab-request" class="w-1/2 py-3 text-center text-blue-600 border-b-2 border-blue-600 font-bold bg-white">📝 เขียนใบลา</button>
-            <button onclick="switchTab('history')" id="btn-tab-history" class="w-1/2 py-3 text-center text-gray-500 font-bold bg-gray-50">📊 ตรวจสอบวันลา</button>
-        </div>
-
-        <div id="tab-request">
-            <div class="bg-white p-6 rounded-lg shadow">
-                <form id="leaveForm" onsubmit="handleSaveAndPrint(event)">
-                    <div class="mb-4">
-                        <label class="block text-gray-700 font-bold mb-2">ประเภทการลา</label>
-                        <select id="leaveType" class="w-full p-3 border rounded-lg bg-gray-50" onchange="toggleFields()">
-                            <option value="sick">ลาป่วย (แบบ ๓)</option>
-                            <option value="personal">ลากิจ (แบบ ๖)</option>
-                            <option value="vacation">ลาพักผ่อน (แบบ ๗)</option>
-                            <option value="ordination">ลาอุปสมบท (แบบ ๘)</option>
-                            <option value="maternity">ลาคลอดบุตร (แบบ ๔)</option>
-                            <option value="help_wife">ลาช่วยเหลือภริยาคลอดบุตร (แบบ ๕)</option>
-                            <option value="cancel">ขอยกเลิกวันลา (แบบ ๑๖)</option>
-                        </select>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-gray-700 mb-1">ตั้งแต่วันที่</label>
-                            <input type="date" id="startDate" class="w-full p-3 border rounded-lg" required>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 mb-1">ถึงวันที่</label>
-                            <input type="date" id="endDate" class="w-full p-3 border rounded-lg" required>
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label id="reasonLabel" class="block text-gray-700 mb-1">เหตุผล / สถานที่ติดต่อ</label>
-                        <textarea id="reason" rows="2" class="w-full p-3 border rounded-lg" placeholder="ระบุรายละเอียด..."></textarea>
-                    </div>
-
-                    <button type="submit" id="btn-submit" class="w-full bg-blue-600 text-white text-xl py-4 rounded-lg font-bold shadow hover:bg-blue-700 transition">
-                        🖨️ บันทึกและพิมพ์ใบลา
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <div id="tab-history" class="hidden-section">
-            <div class="grid grid-cols-3 gap-4 mb-6">
-                <div class="bg-red-50 p-4 rounded text-center border border-red-200">
-                    <p class="text-sm text-red-800">ป่วยคงเหลือ</p>
-                    <p class="text-2xl font-bold" id="quota-sick">0</p>
-                </div>
-                <div class="bg-yellow-50 p-4 rounded text-center border border-yellow-200">
-                    <p class="text-sm text-yellow-800">กิจคงเหลือ</p>
-                    <p class="text-2xl font-bold" id="quota-personal">0</p>
-                </div>
-                <div class="bg-green-50 p-4 rounded text-center border border-green-200">
-                    <p class="text-sm text-green-800">พักร้อนคงเหลือ</p>
-                    <p class="text-2xl font-bold" id="quota-vacation">0</p>
-                </div>
-            </div>
+        <div class="w-full max-w-md pastel-card p-6 border border-white">
+            <label class="block text-gray-600 font-bold mb-3 ml-1">🔍 ค้นหา หรือ เลือกชื่อของคุณ</label>
             
-            <div class="bg-white rounded-lg shadow p-4">
-                <h3 class="font-bold mb-3">ประวัติการลาล่าสุด</h3>
-                <ul id="historyList" class="divide-y text-sm">
-                    <li class="py-2 text-gray-500 text-center">ยังไม่มีประวัติการลา</li>
-                </ul>
+            <div class="relative mb-4">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </span>
+                <input type="text" id="searchInput" placeholder="พิมพ์ชื่อเล่น หรือ ชื่อจริงก็ได้..." 
+                       class="w-full pl-10 p-4 rounded-xl bg-gray-50 border-2 border-pink-100 focus:border-pink-300 focus:outline-none focus:ring-2 focus:ring-pink-200 transition-colors"
+                       onkeyup="filterUsers()">
+            </div>
+
+            <div class="mb-2 text-xs text-gray-400 ml-1">👇 หรือจิ้มเลือกจากรายการด้านล่าง</div>
+            <div id="userList" class="h-64 overflow-y-auto space-y-2 pr-2">
+                </div>
+        </div>
+        
+        <p class="mt-8 text-xs text-gray-400">© 2025 Sanitation Dept. | Made with 💖</p>
+    </div>
+
+    <div id="screen-dashboard" class="hidden-section min-h-screen bg-gray-50 pb-10">
+        
+        <div class="bg-white rounded-b-3xl shadow-sm p-6 mb-6 relative overflow-hidden">
+            <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-yellow-100 rounded-full opacity-50 blur-xl"></div>
+            <div class="absolute top-0 left-0 -ml-4 -mt-4 w-20 h-20 bg-pink-100 rounded-full opacity-50 blur-xl"></div>
+            
+            <div class="flex justify-between items-start relative z-10">
+                <div class="flex items-center">
+                    <div class="h-14 w-14 bg-gradient-to-tr from-pink-300 to-purple-300 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-md mr-4 ring-4 ring-white">
+                        <span id="user-initial">?</span>
+                    </div>
+                    <div>
+                        <h2 id="user-fullname" class="text-xl font-bold text-gray-800">...</h2>
+                        <span class="inline-block bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full font-bold mt-1">แผนกสุขาภิบาล</span>
+                    </div>
+                </div>
+                <button onclick="goHome()" class="bg-gray-100 hover:bg-gray-200 text-gray-500 p-2 rounded-xl transition">
+                    ❌ ออก
+                </button>
+            </div>
+        </div>
+
+        <div class="container mx-auto px-4 max-w-2xl">
+            <div class="flex bg-white p-1 rounded-2xl shadow-sm mb-6 mx-4">
+                <button onclick="switchTab('request')" id="btn-tab-request" class="flex-1 py-3 text-center rounded-xl font-bold text-sm transition-all shadow-sm bg-pink-400 text-white">
+                    📝 เขียนใบลา
+                </button>
+                <button onclick="switchTab('history')" id="btn-tab-history" class="flex-1 py-3 text-center rounded-xl font-bold text-sm text-gray-500 hover:bg-gray-50 transition-all">
+                    📊 เช็ควันลา
+                </button>
+            </div>
+
+            <div id="tab-request" class="mx-2">
+                <div class="pastel-card p-6 bg-white">
+                    <form id="leaveForm" onsubmit="handleSaveAndPrint(event)">
+                        
+                        <div class="mb-5">
+                            <label class="block text-gray-700 font-bold mb-2">📌 จะลาเรื่องอะไรดีคะ?</label>
+                            <div class="relative">
+                                <select id="leaveType" class="w-full p-4 rounded-xl bg-blue-50 border-none focus:ring-2 focus:ring-blue-200 appearance-none font-medium text-blue-800" onchange="toggleFields()">
+                                    <option value="sick">😷 ลาป่วย (แบบ ๓)</option>
+                                    <option value="personal">🚗 ลากิจ (แบบ ๖)</option>
+                                    <option value="vacation">🏖️ ลาพักผ่อน (แบบ ๗)</option>
+                                    <option value="ordination">🙏 ลาอุปสมบท (แบบ ๘)</option>
+                                    <option value="maternity">👶 ลาคลอดบุตร (แบบ ๔)</option>
+                                    <option value="help_wife">👨‍🍼 ลาช่วยภริยาคลอด (แบบ ๕)</option>
+                                    <option value="cancel">❌ ขอยกเลิกวันลา (แบบ ๑๖)</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-blue-500">
+                                    <svg class="fill-current h-4 w-4" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 mb-5">
+                            <div>
+                                <label class="block text-gray-600 text-sm mb-1 ml-1">เริ่มวันที่</label>
+                                <input type="date" id="startDate" class="w-full p-3 rounded-xl bg-gray-50 border border-gray-200" required>
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 text-sm mb-1 ml-1">ถึงวันที่</label>
+                                <input type="date" id="endDate" class="w-full p-3 rounded-xl bg-gray-50 border border-gray-200" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label id="reasonLabel" class="block text-gray-700 font-bold mb-2">📝 รายละเอียดเพิ่มเติม</label>
+                            <textarea id="reason" rows="3" class="w-full p-4 rounded-xl bg-yellow-50 border-none focus:ring-2 focus:ring-yellow-200 text-gray-700 placeholder-gray-400" placeholder="เช่น ปวดท้อง, ไปทำธุระที่ กทม."></textarea>
+                        </div>
+
+                        <button type="submit" id="btn-submit" class="w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white text-lg py-4 rounded-2xl font-bold shadow-lg shadow-pink-200 hover:shadow-xl hover:scale-[1.02] btn-pastel flex justify-center items-center gap-2">
+                            <span>🖨️</span> บันทึกและพิมพ์ใบลา
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="tab-history" class="hidden-section mx-2">
+                <div class="grid grid-cols-3 gap-3 mb-6">
+                    <div class="bg-red-50 p-4 rounded-2xl text-center border border-red-100 shadow-sm">
+                        <div class="text-2xl mb-1">😷</div>
+                        <p class="text-xs text-red-400 font-bold uppercase">ลาป่วยเหลือ</p>
+                        <p class="text-3xl font-extrabold text-red-500 mt-1" id="quota-sick">-</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-2xl text-center border border-blue-100 shadow-sm">
+                        <div class="text-2xl mb-1">🚗</div>
+                        <p class="text-xs text-blue-400 font-bold uppercase">ลากิจเหลือ</p>
+                        <p class="text-3xl font-extrabold text-blue-500 mt-1" id="quota-personal">-</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-2xl text-center border border-green-100 shadow-sm">
+                        <div class="text-2xl mb-1">🏖️</div>
+                        <p class="text-xs text-green-400 font-bold uppercase">พักร้อนเหลือ</p>
+                        <p class="text-3xl font-extrabold text-green-500 mt-1" id="quota-vacation">-</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-sm p-5">
+                    <h3 class="font-bold text-gray-700 mb-4 flex items-center">
+                        <span class="bg-purple-100 text-purple-600 p-1.5 rounded-lg mr-2 text-sm">🕒</span> 
+                        ประวัติการลาล่าสุด
+                    </h3>
+                    <ul id="historyList" class="space-y-3">
+                        <li class="text-center text-gray-400 py-4">กำลังโหลดข้อมูล...</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 1. CONFIGURATION ---
+        // --- 1. CONFIGURATION (Key ของคุณ) ---
         const firebaseConfig = {
             apiKey: "AIzaSyAxgj4sKMUdMQJWj2hU2rbcT4eZ926sskQ",
             authDomain: "leave-system-online.firebaseapp.com",
@@ -140,11 +194,10 @@
             measurementId: "G-D4P9EB6K7H"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // --- 2. DATA PREPARATION (รายชื่อพนักงาน) ---
+        // --- 2. DATA USERS ---
         const initialUsers = [
             { id: "u001", rank: "น.ท.หญิง", name: "พัชรินทร์ วงษ์วุฒิศักดิ์", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
             { id: "u002", rank: "น.ท.หญิง", name: "ขจรจิตต์ ชิณพงศ์", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
@@ -164,80 +217,92 @@
         let allUsers = [];
         let currentUser = null;
 
-        // --- 3. CORE FUNCTIONS ---
-
-        // เริ่มต้นระบบ: เช็คว่ามีข้อมูลใน Firebase หรือยัง ถ้ายังให้ Upload รายชื่อขึ้นไป
+        // --- 3. LOGIC ---
         async function initSystem() {
             try {
+                // Check local data first for speed (optional) or fetch directly
                 const snapshot = await db.collection("users").get();
                 if (snapshot.empty) {
-                    console.log("Database Empty. Uploading initial users...");
+                    console.log("First time setup...");
                     const batch = db.batch();
                     initialUsers.forEach((user) => {
                         const docRef = db.collection("users").doc(user.id);
                         batch.set(docRef, user);
                     });
                     await batch.commit();
-                    console.log("Upload Complete!");
                     allUsers = initialUsers;
                 } else {
-                    console.log("Database Ready. Loading users...");
                     allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 }
                 
-                // ซ่อน Loading แสดง Home
                 document.getElementById('loading-screen').style.display = 'none';
-                document.getElementById('screen-home').style.display = 'block';
+                document.getElementById('screen-home').style.display = 'flex'; // Changed to flex for centering
                 renderUserList(allUsers);
 
             } catch (error) {
-                alert("Error connecting to database: " + error.message);
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ: " + error.message);
             }
         }
 
         function renderUserList(users) {
             const list = document.getElementById('userList');
             list.innerHTML = '';
+            
+            if(users.length === 0) {
+                 list.innerHTML = '<div class="text-center text-gray-400 py-4">ไม่พบชื่อนี้จ้า 😅</div>';
+                 return;
+            }
+
             users.forEach(u => {
                 const div = document.createElement('div');
-                div.className = 'bg-white p-4 rounded shadow cursor-pointer hover:bg-blue-50 border border-gray-200';
-                div.innerHTML = `<span class="font-bold text-lg text-gray-800">${u.rank} ${u.name}</span>`;
+                div.className = 'flex items-center p-3 rounded-xl cursor-pointer hover:bg-pink-50 transition border border-transparent hover:border-pink-200 group';
                 div.onclick = () => selectUser(u);
+                
+                // Avatar สุ่มสี
+                const colors = ['bg-pink-200', 'bg-blue-200', 'bg-green-200', 'bg-yellow-200', 'bg-purple-200'];
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                div.innerHTML = `
+                    <div class="h-10 w-10 ${randomColor} rounded-full flex items-center justify-center text-gray-600 font-bold mr-3 group-hover:scale-110 transition">
+                        ${u.name.charAt(0)}
+                    </div>
+                    <div>
+                        <div class="font-bold text-gray-700 group-hover:text-pink-500">${u.name}</div>
+                        <div class="text-xs text-gray-400">${u.rank}</div>
+                    </div>
+                    <div class="ml-auto opacity-0 group-hover:opacity-100 text-pink-400">
+                        เลือก 👉
+                    </div>
+                `;
                 list.appendChild(div);
             });
         }
 
         function filterUsers() {
             const input = document.getElementById('searchInput').value;
-            if(input.length < 1) {
-                renderUserList([]); // Clear if empty
-                return;
-            }
+            if(!input) { renderUserList(allUsers); return; }
             const filtered = allUsers.filter(u => u.name.includes(input) || u.rank.includes(input));
             renderUserList(filtered);
         }
 
         async function selectUser(user) {
             currentUser = user;
-            // ดึงข้อมูลล่าสุดจาก DB อีกทีเพื่อความชัวร์ (Real-time)
             document.getElementById('loading-screen').style.display = 'flex';
+            
+            // Fetch fresh data
             const doc = await db.collection("users").doc(user.id).get();
             currentUser = { id: doc.id, ...doc.data() };
 
-            // Update UI
+            // UI Updates
             document.getElementById('user-fullname').innerText = `${currentUser.rank} ${currentUser.name}`;
             document.getElementById('user-initial').innerText = currentUser.name.charAt(0);
-            document.getElementById('user-rank').innerText = "แผนกสุขาภิบาล"; // หรือดึงจาก DB
-
-            // Update Quota
+            
             updateQuotaUI();
             
-            // Switch Screen
             document.getElementById('loading-screen').style.display = 'none';
             document.getElementById('screen-home').style.display = 'none';
             document.getElementById('screen-dashboard').style.display = 'block';
             
-            // Load History
             loadHistory(user.id);
         }
 
@@ -250,7 +315,6 @@
 
         async function loadHistory(userId) {
             const list = document.getElementById('historyList');
-            list.innerHTML = '<li class="py-2 text-center">กำลังโหลด...</li>';
             
             const snapshot = await db.collection("leave_records")
                                      .where("userId", "==", userId)
@@ -260,20 +324,23 @@
             
             list.innerHTML = '';
             if (snapshot.empty) {
-                list.innerHTML = '<li class="py-2 text-gray-500 text-center">ยังไม่มีประวัติการลา</li>';
+                list.innerHTML = '<li class="text-center text-gray-400 py-4 text-sm bg-gray-50 rounded-xl">ยังไม่เคยลาเลย สุดยอด! 👍</li>';
                 return;
             }
 
             snapshot.forEach(doc => {
                 const data = doc.data();
                 const li = document.createElement('li');
-                li.className = "py-3 border-b flex justify-between";
+                li.className = "flex justify-between items-center p-3 bg-white border border-gray-100 rounded-xl shadow-sm";
                 li.innerHTML = `
-                    <div>
-                        <span class="font-bold text-gray-700">${translateType(data.leaveType)}</span>
-                        <br><span class="text-xs text-gray-500">${data.startDate} (${data.totalDays} วัน)</span>
+                    <div class="flex items-center gap-3">
+                        <div class="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center text-sm">📅</div>
+                        <div>
+                            <p class="font-bold text-gray-700 text-sm">${translateType(data.leaveType)}</p>
+                            <p class="text-xs text-gray-400">${formatDate(data.startDate)} (${data.totalDays} วัน)</p>
+                        </div>
                     </div>
-                    <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded h-fit">บันทึกแล้ว</span>
+                    <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-lg font-bold">สำเร็จ</span>
                 `;
                 list.appendChild(li);
             });
@@ -281,10 +348,11 @@
 
         async function handleSaveAndPrint(e) {
             e.preventDefault();
-            if(!confirm("ยืนยันข้อมูลถูกต้อง และต้องการพิมพ์ใบลา?")) return;
+            if(!confirm("ยืนยันข้อมูลถูกต้องนะจ๊ะ?")) return;
 
             const btn = document.getElementById('btn-submit');
-            btn.innerText = "⏳ กำลังบันทึก...";
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "⏳ กำลังบันทึกจ้า...";
             btn.disabled = true;
 
             const leaveType = document.getElementById('leaveType').value;
@@ -292,14 +360,14 @@
             const endDate = document.getElementById('endDate').value;
             const reason = document.getElementById('reason').value;
 
-            // คำนวณวัน (คร่าวๆ)
+            // Simple Day Calculation
             const start = new Date(startDate);
             const end = new Date(endDate);
             const diffTime = Math.abs(end - start);
             const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
 
             try {
-                // 1. Save to History
+                // 1. Save History
                 await db.collection("leave_records").add({
                     userId: currentUser.id,
                     userName: currentUser.name,
@@ -311,7 +379,7 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                // 2. Update Quota (ตัดวันลา)
+                // 2. Cut Quota
                 const userRef = db.collection("users").doc(currentUser.id);
                 const updateField = {};
                 if(leaveType === 'sick') updateField['quota.used_sick'] = firebase.firestore.FieldValue.increment(totalDays);
@@ -322,26 +390,27 @@
                     await userRef.update(updateField);
                 }
 
-                alert("✅ บันทึกข้อมูลสำเร็จ! ระบบจะสร้างไฟล์ PDF ในขั้นตอนต่อไป...");
-                
-                // 3. Generate PDF (Placeholder)
-                // ในขั้นตอนนี้เราจะเรียกฟังก์ชันสร้าง PDF (จะเขียนเพิ่มในสเต็ปถัดไป)
-                // generatePDF(currentUser, leaveType, startDate, endDate, reason);
-
-                location.reload(); // รีเฟรชเพื่อเริ่มใหม่
+                alert("✅ บันทึกเรียบร้อย! เดี๋ยวระบบจะสร้าง PDF ให้นะ");
+                location.reload();
 
             } catch (error) {
                 console.error(error);
-                alert("เกิดข้อผิดพลาด: " + error.message);
-                btn.innerText = "ลองใหม่อีกครั้ง";
+                alert("อุ๊ย! มีปัญหา: " + error.message);
+                btn.innerHTML = originalText;
                 btn.disabled = false;
             }
         }
 
         // --- Helpers ---
         function translateType(type) {
-            const dict = { sick: "ลาป่วย", personal: "ลากิจ", vacation: "ลาพักร้อน", ordination: "ลาบวช", maternity: "ลาคลอด", help_wife: "ลาช่วยภริยา", cancel: "ยกเลิกวันลา" };
+            const dict = { sick: "ลาป่วย", personal: "ลากิจ", vacation: "ลาพักร้อน", ordination: "ลาบวช", maternity: "ลาคลอด", help_wife: "ช่วยภริยาคลอด", cancel: "ยกเลิกวันลา" };
             return dict[type] || type;
+        }
+
+        function formatDate(dateStr) {
+            // Convert 2025-11-28 to 28 พ.ย. 68 (Simple version)
+            const d = new Date(dateStr);
+            return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()+543}`; 
         }
 
         function toggleFields() {
@@ -349,9 +418,9 @@
             const label = document.getElementById('reasonLabel');
             const ph = document.getElementById('reason');
             
-            if(type === 'sick') { label.innerText = "อาการป่วย / ที่อยู่ขณะลา"; ph.placeholder = "ป่วยเป็นไข้หวัด พักที่..."; }
-            else if(type === 'personal') { label.innerText = "กิจธุระ / จังหวัดที่จะไป"; ph.placeholder = "ทำธุระส่วนตัว ไปจังหวัด..."; }
-            else { label.innerText = "เหตุผล / หมายเหตุ"; ph.placeholder = "..."; }
+            if(type === 'sick') { label.innerText = "🏥 อาการป่วย / ที่อยู่ขณะลา"; ph.placeholder = "ป่วยเป็นไข้หวัด พักที่..."; }
+            else if(type === 'personal') { label.innerText = "🚗 กิจธุระ / จังหวัดที่จะไป"; ph.placeholder = "ทำธุระส่วนตัว ไปจังหวัด..."; }
+            else { label.innerText = "📝 เหตุผล / หมายเหตุ"; ph.placeholder = "ระบุรายละเอียด..."; }
         }
 
         function goHome() { location.reload(); }
@@ -359,12 +428,20 @@
         function switchTab(tab) {
             document.getElementById('tab-request').style.display = tab === 'request' ? 'block' : 'none';
             document.getElementById('tab-history').style.display = tab === 'history' ? 'block' : 'none';
-            // (Style switching logic omitted for brevity)
+            
+            const btnReq = document.getElementById('btn-tab-request');
+            const btnHis = document.getElementById('btn-tab-history');
+
+            if(tab === 'request') {
+                btnReq.className = "flex-1 py-3 text-center rounded-xl font-bold text-sm transition-all shadow-md bg-pink-400 text-white transform scale-105";
+                btnHis.className = "flex-1 py-3 text-center rounded-xl font-bold text-sm text-gray-500 hover:bg-gray-50 transition-all";
+            } else {
+                btnHis.className = "flex-1 py-3 text-center rounded-xl font-bold text-sm transition-all shadow-md bg-blue-400 text-white transform scale-105";
+                btnReq.className = "flex-1 py-3 text-center rounded-xl font-bold text-sm text-gray-500 hover:bg-gray-50 transition-all";
+            }
         }
 
-        // Run System
         initSystem();
-
     </script>
 </body>
 </html>
