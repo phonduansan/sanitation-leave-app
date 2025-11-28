@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบลาออนไลน์ (แผนกสุขาภิบาล)</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/@pdf-lib/fontkit@0.0.4/dist/fontkit.umd.min.js"></script>
+
+    <style>
+        body { font-family: 'Sarabun', sans-serif; }
+        .hidden-section { display: none; }
+        .loader { border-top-color: #3498db; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <div id="loading-screen" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+        <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-16 w-16 mb-4"></div>
+        <p class="text-gray-500 text-xl font-bold">กำลังเชื่อมต่อฐานข้อมูล...</p>
+    </div>
+
+    <div id="screen-home" class="container mx-auto px-4 py-10 max-w-2xl hidden-section">
+        <div class="text-center mb-10">
+            <h1 class="text-3xl font-bold text-blue-800">ระบบลาออนไลน์</h1>
+            <p class="text-gray-600 mt-2">แผนกสุขาภิบาล กองเวชกรรมป้องกัน</p>
+        </div>
+
+        <div class="mb-6 relative">
+            <input type="text" id="searchInput" placeholder="พิมพ์ชื่อเพื่อค้นหา..." 
+                   class="w-full p-4 text-xl border-2 border-blue-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+                   onkeyup="filterUsers()">
+        </div>
+
+        <div id="userList" class="grid gap-3 max-h-96 overflow-y-auto">
+            </div>
+    </div>
+
+    <div id="screen-dashboard" class="hidden-section container mx-auto px-4 py-6 max-w-4xl">
+        <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow mb-6">
+            <div class="flex items-center">
+                <div class="h-12 w-12 bg-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold mr-4">
+                    <span id="user-initial">?</span>
+                </div>
+                <div>
+                    <h2 id="user-fullname" class="text-xl font-bold text-gray-800">...</h2>
+                    <p id="user-rank" class="text-gray-500 text-sm">...</p>
+                </div>
+            </div>
+            <button onclick="goHome()" class="text-red-500 border border-red-500 px-4 py-2 rounded hover:bg-red-50">ออก</button>
+        </div>
+
+        <div class="flex mb-6 border-b border-gray-300">
+            <button onclick="switchTab('request')" id="btn-tab-request" class="w-1/2 py-3 text-center text-blue-600 border-b-2 border-blue-600 font-bold bg-white">📝 เขียนใบลา</button>
+            <button onclick="switchTab('history')" id="btn-tab-history" class="w-1/2 py-3 text-center text-gray-500 font-bold bg-gray-50">📊 ตรวจสอบวันลา</button>
+        </div>
+
+        <div id="tab-request">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <form id="leaveForm" onsubmit="handleSaveAndPrint(event)">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-bold mb-2">ประเภทการลา</label>
+                        <select id="leaveType" class="w-full p-3 border rounded-lg bg-gray-50" onchange="toggleFields()">
+                            <option value="sick">ลาป่วย (แบบ ๓)</option>
+                            <option value="personal">ลากิจ (แบบ ๖)</option>
+                            <option value="vacation">ลาพักผ่อน (แบบ ๗)</option>
+                            <option value="ordination">ลาอุปสมบท (แบบ ๘)</option>
+                            <option value="maternity">ลาคลอดบุตร (แบบ ๔)</option>
+                            <option value="help_wife">ลาช่วยเหลือภริยาคลอดบุตร (แบบ ๕)</option>
+                            <option value="cancel">ขอยกเลิกวันลา (แบบ ๑๖)</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-700 mb-1">ตั้งแต่วันที่</label>
+                            <input type="date" id="startDate" class="w-full p-3 border rounded-lg" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-1">ถึงวันที่</label>
+                            <input type="date" id="endDate" class="w-full p-3 border rounded-lg" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label id="reasonLabel" class="block text-gray-700 mb-1">เหตุผล / สถานที่ติดต่อ</label>
+                        <textarea id="reason" rows="2" class="w-full p-3 border rounded-lg" placeholder="ระบุรายละเอียด..."></textarea>
+                    </div>
+
+                    <button type="submit" id="btn-submit" class="w-full bg-blue-600 text-white text-xl py-4 rounded-lg font-bold shadow hover:bg-blue-700 transition">
+                        🖨️ บันทึกและพิมพ์ใบลา
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div id="tab-history" class="hidden-section">
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="bg-red-50 p-4 rounded text-center border border-red-200">
+                    <p class="text-sm text-red-800">ป่วยคงเหลือ</p>
+                    <p class="text-2xl font-bold" id="quota-sick">0</p>
+                </div>
+                <div class="bg-yellow-50 p-4 rounded text-center border border-yellow-200">
+                    <p class="text-sm text-yellow-800">กิจคงเหลือ</p>
+                    <p class="text-2xl font-bold" id="quota-personal">0</p>
+                </div>
+                <div class="bg-green-50 p-4 rounded text-center border border-green-200">
+                    <p class="text-sm text-green-800">พักร้อนคงเหลือ</p>
+                    <p class="text-2xl font-bold" id="quota-vacation">0</p>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-4">
+                <h3 class="font-bold mb-3">ประวัติการลาล่าสุด</h3>
+                <ul id="historyList" class="divide-y text-sm">
+                    <li class="py-2 text-gray-500 text-center">ยังไม่มีประวัติการลา</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAxgj4sKMUdMQJWj2hU2rbcT4eZ926sskQ",
+            authDomain: "leave-system-online.firebaseapp.com",
+            projectId: "leave-system-online",
+            storageBucket: "leave-system-online.firebasestorage.app",
+            messagingSenderId: "801381918860",
+            appId: "1:801381918860:web:035197d704d8e6712f73a9",
+            measurementId: "G-D4P9EB6K7H"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // --- 2. DATA PREPARATION (รายชื่อพนักงาน) ---
+        const initialUsers = [
+            { id: "u001", rank: "น.ท.หญิง", name: "พัชรินทร์ วงษ์วุฒิศักดิ์", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u002", rank: "น.ท.หญิง", name: "ขจรจิตต์ ชิณพงศ์", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u003", rank: "น.ต.", name: "ธณกร พึ่งพิมาย", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u004", rank: "น.ต.หญิง", name: "กานต์พิชชา เชาวลิต", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u005", rank: "ร.อ.หญิง", name: "รุ่งทิวา รัตน์อ่อน", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u006", rank: "ร.อ.หญิง", name: "อภิราม สธนกุล", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u007", rank: "ร.อ.หญิง", name: "ตรีฐิตา อินทะชัย", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u008", rank: "พ.อ.อ.", name: "นพพร อรุณฉาย", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u009", rank: "พ.อ.อ.หญิง", name: "สุธิมา ศิริพิพัฒน์พงษ์", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u010", rank: "พ.อ.ต.", name: "ภูริพงษ์ สลางสิงห์", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u011", rank: "นาย", name: "กฤษดา คงกัลป์", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u012", rank: "นาย", name: "ประเสริฐ ทับแถม", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u013", rank: "น.ส.", name: "เสาวณีย์ อินกาย", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } }
+        ];
+
+        let allUsers = [];
+        let currentUser = null;
+
+        // --- 3. CORE FUNCTIONS ---
+
+        // เริ่มต้นระบบ: เช็คว่ามีข้อมูลใน Firebase หรือยัง ถ้ายังให้ Upload รายชื่อขึ้นไป
+        async function initSystem() {
+            try {
+                const snapshot = await db.collection("users").get();
+                if (snapshot.empty) {
+                    console.log("Database Empty. Uploading initial users...");
+                    const batch = db.batch();
+                    initialUsers.forEach((user) => {
+                        const docRef = db.collection("users").doc(user.id);
+                        batch.set(docRef, user);
+                    });
+                    await batch.commit();
+                    console.log("Upload Complete!");
+                    allUsers = initialUsers;
+                } else {
+                    console.log("Database Ready. Loading users...");
+                    allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                }
+                
+                // ซ่อน Loading แสดง Home
+                document.getElementById('loading-screen').style.display = 'none';
+                document.getElementById('screen-home').style.display = 'block';
+                renderUserList(allUsers);
+
+            } catch (error) {
+                alert("Error connecting to database: " + error.message);
+            }
+        }
+
+        function renderUserList(users) {
+            const list = document.getElementById('userList');
+            list.innerHTML = '';
+            users.forEach(u => {
+                const div = document.createElement('div');
+                div.className = 'bg-white p-4 rounded shadow cursor-pointer hover:bg-blue-50 border border-gray-200';
+                div.innerHTML = `<span class="font-bold text-lg text-gray-800">${u.rank} ${u.name}</span>`;
+                div.onclick = () => selectUser(u);
+                list.appendChild(div);
+            });
+        }
+
+        function filterUsers() {
+            const input = document.getElementById('searchInput').value;
+            if(input.length < 1) {
+                renderUserList([]); // Clear if empty
+                return;
+            }
+            const filtered = allUsers.filter(u => u.name.includes(input) || u.rank.includes(input));
+            renderUserList(filtered);
+        }
+
+        async function selectUser(user) {
+            currentUser = user;
+            // ดึงข้อมูลล่าสุดจาก DB อีกทีเพื่อความชัวร์ (Real-time)
+            document.getElementById('loading-screen').style.display = 'flex';
+            const doc = await db.collection("users").doc(user.id).get();
+            currentUser = { id: doc.id, ...doc.data() };
+
+            // Update UI
+            document.getElementById('user-fullname').innerText = `${currentUser.rank} ${currentUser.name}`;
+            document.getElementById('user-initial').innerText = currentUser.name.charAt(0);
+            document.getElementById('user-rank').innerText = "แผนกสุขาภิบาล"; // หรือดึงจาก DB
+
+            // Update Quota
+            updateQuotaUI();
+            
+            // Switch Screen
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('screen-home').style.display = 'none';
+            document.getElementById('screen-dashboard').style.display = 'block';
+            
+            // Load History
+            loadHistory(user.id);
+        }
+
+        function updateQuotaUI() {
+            const q = currentUser.quota;
+            document.getElementById('quota-sick').innerText = q.sick - q.used_sick;
+            document.getElementById('quota-personal').innerText = q.personal - q.used_personal;
+            document.getElementById('quota-vacation').innerText = q.vacation - q.used_vacation;
+        }
+
+        async function loadHistory(userId) {
+            const list = document.getElementById('historyList');
+            list.innerHTML = '<li class="py-2 text-center">กำลังโหลด...</li>';
+            
+            const snapshot = await db.collection("leave_records")
+                                     .where("userId", "==", userId)
+                                     .orderBy("timestamp", "desc")
+                                     .limit(5)
+                                     .get();
+            
+            list.innerHTML = '';
+            if (snapshot.empty) {
+                list.innerHTML = '<li class="py-2 text-gray-500 text-center">ยังไม่มีประวัติการลา</li>';
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const li = document.createElement('li');
+                li.className = "py-3 border-b flex justify-between";
+                li.innerHTML = `
+                    <div>
+                        <span class="font-bold text-gray-700">${translateType(data.leaveType)}</span>
+                        <br><span class="text-xs text-gray-500">${data.startDate} (${data.totalDays} วัน)</span>
+                    </div>
+                    <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded h-fit">บันทึกแล้ว</span>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        async function handleSaveAndPrint(e) {
+            e.preventDefault();
+            if(!confirm("ยืนยันข้อมูลถูกต้อง และต้องการพิมพ์ใบลา?")) return;
+
+            const btn = document.getElementById('btn-submit');
+            btn.innerText = "⏳ กำลังบันทึก...";
+            btn.disabled = true;
+
+            const leaveType = document.getElementById('leaveType').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const reason = document.getElementById('reason').value;
+
+            // คำนวณวัน (คร่าวๆ)
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const diffTime = Math.abs(end - start);
+            const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
+
+            try {
+                // 1. Save to History
+                await db.collection("leave_records").add({
+                    userId: currentUser.id,
+                    userName: currentUser.name,
+                    leaveType: leaveType,
+                    startDate: startDate,
+                    endDate: endDate,
+                    totalDays: totalDays,
+                    reason: reason,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // 2. Update Quota (ตัดวันลา)
+                const userRef = db.collection("users").doc(currentUser.id);
+                const updateField = {};
+                if(leaveType === 'sick') updateField['quota.used_sick'] = firebase.firestore.FieldValue.increment(totalDays);
+                if(leaveType === 'personal') updateField['quota.used_personal'] = firebase.firestore.FieldValue.increment(totalDays);
+                if(leaveType === 'vacation') updateField['quota.used_vacation'] = firebase.firestore.FieldValue.increment(totalDays);
+                
+                if(Object.keys(updateField).length > 0) {
+                    await userRef.update(updateField);
+                }
+
+                alert("✅ บันทึกข้อมูลสำเร็จ! ระบบจะสร้างไฟล์ PDF ในขั้นตอนต่อไป...");
+                
+                // 3. Generate PDF (Placeholder)
+                // ในขั้นตอนนี้เราจะเรียกฟังก์ชันสร้าง PDF (จะเขียนเพิ่มในสเต็ปถัดไป)
+                // generatePDF(currentUser, leaveType, startDate, endDate, reason);
+
+                location.reload(); // รีเฟรชเพื่อเริ่มใหม่
+
+            } catch (error) {
+                console.error(error);
+                alert("เกิดข้อผิดพลาด: " + error.message);
+                btn.innerText = "ลองใหม่อีกครั้ง";
+                btn.disabled = false;
+            }
+        }
+
+        // --- Helpers ---
+        function translateType(type) {
+            const dict = { sick: "ลาป่วย", personal: "ลากิจ", vacation: "ลาพักร้อน", ordination: "ลาบวช", maternity: "ลาคลอด", help_wife: "ลาช่วยภริยา", cancel: "ยกเลิกวันลา" };
+            return dict[type] || type;
+        }
+
+        function toggleFields() {
+            const type = document.getElementById('leaveType').value;
+            const label = document.getElementById('reasonLabel');
+            const ph = document.getElementById('reason');
+            
+            if(type === 'sick') { label.innerText = "อาการป่วย / ที่อยู่ขณะลา"; ph.placeholder = "ป่วยเป็นไข้หวัด พักที่..."; }
+            else if(type === 'personal') { label.innerText = "กิจธุระ / จังหวัดที่จะไป"; ph.placeholder = "ทำธุระส่วนตัว ไปจังหวัด..."; }
+            else { label.innerText = "เหตุผล / หมายเหตุ"; ph.placeholder = "..."; }
+        }
+
+        function goHome() { location.reload(); }
+        
+        function switchTab(tab) {
+            document.getElementById('tab-request').style.display = tab === 'request' ? 'block' : 'none';
+            document.getElementById('tab-history').style.display = tab === 'history' ? 'block' : 'none';
+            // (Style switching logic omitted for brevity)
+        }
+
+        // Run System
+        initSystem();
+
+    </script>
+</body>
+</html>
