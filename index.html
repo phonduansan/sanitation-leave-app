@@ -246,8 +246,9 @@
             { id: "u011", rank: "นาย", name: "กฤษดา คงกัลป์", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
             { id: "u012", rank: "นาย", name: "ประเสริฐ ทับแถม", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
             { id: "u013", rank: "น.ส.", name: "เสาวณีย์ อินกาย", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            // เพิ่มรายชื่อตกหล่น
-            { id: "u014", rank: "นาย", name: "อภิรักษ์ นิลเกษม", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } }
+            // u014 (เอเธน) ลบออกแล้วตามคำสั่ง
+            // เพิ่มรายชื่อ นายอภิรักษ์ นิลเกษม
+            { id: "u015", rank: "นาย", name: "อภิรักษ์ นิลเกษม", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } }
         ];
 
         let allUsers = [];
@@ -266,27 +267,36 @@
                     allUsers = initialUsers;
                     console.log("Initial Setup Complete");
                 } 
-                // กรณี 2: มีข้อมูลอยู่แล้ว -> เช็คว่ามีชื่อใหม่ๆ (เช่น u014, u015) หรือยัง?
+                // กรณี 2: มีข้อมูลอยู่แล้ว -> เช็ค Update
                 else {
                     allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     
-                    // ระบบตรวจสอบ Auto-Add: วนลูปเช็ค initialUsers ทุกคน
-                    // ถ้าคนไหนยังไม่มีใน Database ให้เพิ่มเข้าไปเลย (รองรับการเพิ่มชื่อในอนาคตได้ตลอด)
                     const batch = db.batch();
-                    let hasNewUser = false;
+                    let hasChanges = false;
 
+                    // 2.1 เพิ่มคนใหม่ที่ยังไม่มี (เช่น นายอภิรักษ์)
                     initialUsers.forEach(initUser => {
                         const exists = allUsers.find(u => u.id === initUser.id);
                         if (!exists) {
                             const docRef = db.collection("users").doc(initUser.id);
                             batch.set(docRef, initUser);
-                            allUsers.push(initUser); // อัปเดตตัวแปรในเครื่องทันที
-                            hasNewUser = true;
+                            allUsers.push(initUser);
+                            hasChanges = true;
                             console.log(`Auto-added missing user: ${initUser.name}`);
                         }
                     });
 
-                    if (hasNewUser) {
+                    // 2.2 ลบชื่อ "เอเธน" (u014) ออก ถ้ามีค้างอยู่ในระบบเก่า
+                    const athensDuplicate = allUsers.find(u => u.id === 'u014');
+                    if (athensDuplicate) {
+                        const docRef = db.collection("users").doc('u014');
+                        batch.delete(docRef);
+                        allUsers = allUsers.filter(u => u.id !== 'u014'); // เอาออกจากตัวแปรด้วย
+                        hasChanges = true;
+                        console.log("Auto-removed duplicate user: u014 (Athens)");
+                    }
+
+                    if (hasChanges) {
                         await batch.commit();
                     }
                 }
