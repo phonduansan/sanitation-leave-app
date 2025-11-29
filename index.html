@@ -3,42 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบลาออนไลน์ (Sanitation Cute ✨)</title>
+    <title>ระบบลาออนไลน์ (Sanitation Dept.)</title>
     
+    <!-- =========================================
+         SECTION 1: LIBRARIES & CONFIG
+    ========================================= -->
+    <!-- Tailwind CSS (Styling) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Sarabun) -->
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;800&display=swap" rel="stylesheet">
     
+    <!-- Firebase SDK (Database) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
     
+    <!-- PDF Lib (Document Generation) -->
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://unpkg.com/@pdf-lib/fontkit@0.0.4/dist/fontkit.umd.min.js"></script>
 
+    <!-- =========================================
+         SECTION 2: CUSTOM CSS
+    ========================================= -->
     <style>
         body { 
             font-family: 'Sarabun', sans-serif; 
-            background: linear-gradient(135deg, #fdfbf7 0%, #eef2f3 100%);
+            background: linear-gradient(135deg, #fdfbf7 0%, #eef2f3 100%); /* Soft Gradient */
         }
+        
+        /* Glassmorphism Card Style */
         .pastel-card {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.5);
         }
+
+        /* Button Animations */
         .btn-pastel { transition: all 0.3s ease; }
+        .btn-pastel:hover { transform: translateY(-2px); }
         .btn-pastel:active { transform: scale(0.95); }
+
+        /* Helpers */
         .hidden-section { display: none; }
         .slide-down { animation: slideDown 0.3s ease-out forwards; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        @keyframes slideDown { 
+            from { opacity: 0; transform: translateY(-10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="text-gray-700">
 
+    <!-- =========================================
+         SECTION 3: UI COMPONENTS
+    ========================================= -->
+
+    <!-- 3.1 Loading Screen -->
     <div id="loading-screen" class="fixed inset-0 bg-pink-50 z-50 flex flex-col items-center justify-center">
         <div class="animate-bounce text-6xl mb-4">🐰</div>
-        <p class="text-pink-400 text-xl font-bold animate-pulse">กำลังโหลดข้อมูลนะจ๊ะ...</p>
+        <p class="text-pink-400 text-xl font-bold animate-pulse">กำลังโหลดข้อมูล...</p>
     </div>
 
+    <!-- 3.2 Login / Home Screen -->
     <div id="screen-home" class="min-h-screen flex flex-col items-center justify-center px-4 py-10 hidden-section bg-gradient-to-b from-pink-50 to-blue-50">
         <div class="text-center mb-8">
             <div class="text-6xl mb-2">🏥✨</div>
@@ -46,10 +79,10 @@
             <p class="text-gray-500 mt-2">แผนกสุขาภิบาล กองเวชศาสตร์ป้องกัน กรมแพทย์ทหารอากาศ</p>
         </div>
 
-        <div class="w-full max-w-md pastel-card p-6 border border-white">
+        <div class="w-full max-w-md pastel-card p-6">
             <label class="block text-gray-600 font-bold mb-3 ml-1">🔍 ค้นหา หรือ เลือกชื่อของคุณ</label>
             <div class="relative mb-4">
-                <input type="text" id="searchInput" placeholder="พิมพ์ชื่อเล่น หรือ ชื่อจริงก็ได้..." 
+                <input type="text" id="searchInput" placeholder="พิมพ์ชื่อเล่น หรือ ชื่อจริง..." 
                        class="w-full pl-4 p-4 rounded-xl bg-gray-50 border-2 border-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-200"
                        onkeyup="filterUsers()">
             </div>
@@ -58,11 +91,14 @@
         <p class="mt-8 text-xs text-gray-400">© 2025 Sanitation Dept. | Made with 💖</p>
     </div>
 
+    <!-- 3.3 Dashboard Screen -->
     <div id="screen-dashboard" class="hidden-section min-h-screen bg-gray-50 pb-10">
+        
+        <!-- Header Profile -->
         <div class="bg-white rounded-b-3xl shadow-sm p-6 mb-6 relative overflow-hidden">
             <div class="flex justify-between items-start relative z-10">
                 <div class="flex items-center">
-                    <div class="h-14 w-14 bg-gradient-to-tr from-pink-300 to-purple-300 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-md mr-4 ring-4 ring-white">
+                    <div class="h-14 w-14 bg-gradient-to-tr from-pink-300 to-purple-300 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-md mr-4">
                         <span id="user-initial">?</span>
                     </div>
                     <div>
@@ -75,31 +111,34 @@
         </div>
 
         <div class="container mx-auto px-4 max-w-2xl">
+            <!-- Navigation Tabs -->
             <div class="flex bg-white p-1 rounded-2xl shadow-sm mb-6 mx-4">
-                <button onclick="switchTab('request')" id="btn-tab-request" class="flex-1 py-3 text-center rounded-xl font-bold text-sm bg-pink-400 text-white">📝 เขียนใบลา</button>
-                <button onclick="switchTab('history')" id="btn-tab-history" class="flex-1 py-3 text-center rounded-xl font-bold text-sm text-gray-500">📊 เช็ควันลา</button>
+                <button onclick="switchTab('request')" id="btn-tab-request" class="flex-1 py-3 text-center rounded-xl font-bold text-sm bg-pink-400 text-white shadow-md">📝 เขียนใบลา</button>
+                <button onclick="switchTab('history')" id="btn-tab-history" class="flex-1 py-3 text-center rounded-xl font-bold text-sm text-gray-500 hover:bg-gray-50">📊 เช็ควันลา</button>
             </div>
 
+            <!-- Tab Content: Request Form -->
             <div id="tab-request" class="mx-2">
                 <div class="pastel-card p-6 bg-white">
                     <form id="leaveForm" onsubmit="handleSaveAndPrint(event)">
                         
+                        <!-- 1. เลือกประเภท -->
                         <div class="mb-5">
                             <label class="block text-gray-700 font-bold mb-2">📌 เลือกประเภทเอกสาร</label>
-                            <select id="leaveType" class="w-full p-4 rounded-xl bg-blue-50 font-medium text-blue-800 focus:outline-none" onchange="toggleFields()">
+                            <select id="leaveType" class="w-full p-4 rounded-xl bg-blue-50 font-medium text-blue-800 focus:outline-none cursor-pointer" onchange="toggleFields()">
                                 <option value="sick">😷 ลาป่วย (แบบ ๓)</option>
                                 <option value="personal">🚗 ลากิจ (แบบ ๖)</option>
                                 <option value="vacation">🏖️ ลาพักผ่อน (แบบ ๗)</option>
                                 <option value="ordination">🙏 ลาอุปสมบท (แบบ ๘)</option>
                                 <option value="maternity">👶 ลาคลอดบุตร (แบบ ๔)</option>
                                 <option value="help_wife">👨‍🍼 ลาช่วยภริยาคลอด (แบบ ๕)</option>
-                                <option value="cancel" class="text-red-600 font-bold">❌ ขอยกเลิกวันลา (แบบ ๑๖)</option>
+                                <option value="cancel" class="text-red-600 font-bold bg-red-50">❌ ขอยกเลิกวันลา (แบบ ๑๖)</option>
                             </select>
                         </div>
 
+                        <!-- 2. ส่วนพิเศษ: สำหรับการยกเลิกวันลา -->
                         <div id="cancelSection" class="hidden-section mb-6 bg-red-50 p-4 rounded-xl border border-red-100 slide-down">
                             <h3 class="text-red-500 font-bold mb-3 flex items-center">🚫 ข้อมูลใบลาเดิม (ที่จะยกเลิก)</h3>
-                            
                             <div class="mb-3">
                                 <label class="block text-gray-600 text-xs mb-1">ต้องการคืนวันลาประเภทไหน?</label>
                                 <select id="cancelTargetType" class="w-full p-3 rounded-lg bg-white border border-red-200 text-sm">
@@ -111,20 +150,14 @@
                                     <option value="help_wife">👨‍🍼 ลาช่วยภริยาคลอด</option>
                                 </select>
                             </div>
-                            
                             <div class="grid grid-cols-2 gap-3 mb-3">
-                                <div>
-                                    <label class="block text-gray-500 text-xs mb-1">วันที่ลาเดิม (เริ่ม)</label>
-                                    <input type="date" id="origStart" class="w-full p-2 rounded-lg border border-gray-200 text-sm">
-                                </div>
-                                <div>
-                                    <label class="block text-gray-500 text-xs mb-1">วันที่ลาเดิม (ถึง)</label>
-                                    <input type="date" id="origEnd" class="w-full p-2 rounded-lg border border-gray-200 text-sm">
-                                </div>
+                                <div><label class="block text-gray-500 text-xs mb-1">เริ่มลาวันที่</label><input type="date" id="origStart" class="w-full p-2 rounded-lg border border-gray-200 text-sm"></div>
+                                <div><label class="block text-gray-500 text-xs mb-1">ถึงวันที่</label><input type="date" id="origEnd" class="w-full p-2 rounded-lg border border-gray-200 text-sm"></div>
                             </div>
-                            <div class="text-xs text-gray-400">* ใส่เพื่ออ้างอิงในใบขอยกเลิก (แบบ ๑๖)</div>
+                            <p class="text-xs text-red-400">* กรอกเพื่ออ้างอิงในใบขอยกเลิก</p>
                         </div>
 
+                        <!-- 3. วันที่และรายละเอียด -->
                         <div class="grid grid-cols-2 gap-4 mb-5">
                             <div>
                                 <label id="labelStartDate" class="block text-gray-600 text-sm mb-1 ml-1">เริ่มวันที่</label>
@@ -137,18 +170,20 @@
                         </div>
 
                         <div class="mb-6">
-                            <label id="reasonLabel" class="block text-gray-700 font-bold mb-2">📝 รายละเอียด</label>
+                            <label class="block text-gray-700 font-bold mb-2">📝 รายละเอียดเพิ่มเติม</label>
                             <textarea id="reason" rows="3" class="w-full p-4 rounded-xl bg-yellow-50 text-gray-700 placeholder-gray-400 focus:outline-none" placeholder="ระบุรายละเอียด..."></textarea>
                         </div>
 
-                        <button type="submit" id="btn-submit" class="w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white text-lg py-4 rounded-2xl font-bold shadow-lg shadow-pink-200 hover:shadow-xl hover:scale-[1.02] btn-pastel flex justify-center items-center gap-2">
+                        <button type="submit" id="btn-submit" class="w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white text-lg py-4 rounded-2xl font-bold shadow-lg shadow-pink-200 btn-pastel flex justify-center items-center gap-2">
                             <span>🖨️</span> บันทึกและพิมพ์เอกสาร
                         </button>
                     </form>
                 </div>
             </div>
 
+            <!-- Tab Content: History & Quota -->
             <div id="tab-history" class="hidden-section mx-2">
+                <!-- Quota Cards -->
                 <div class="grid grid-cols-3 gap-3 mb-6">
                     <div class="bg-red-50 p-4 rounded-2xl text-center border border-red-100 shadow-sm">
                         <div class="text-2xl mb-1">😷</div>
@@ -166,6 +201,8 @@
                         <p class="text-3xl font-extrabold text-green-500 mt-1" id="quota-vacation">-</p>
                     </div>
                 </div>
+                
+                <!-- History List -->
                 <div class="bg-white rounded-2xl shadow-sm p-5">
                     <h3 class="font-bold text-gray-700 mb-4 flex items-center">
                         <span class="bg-purple-100 text-purple-600 p-1.5 rounded-lg mr-2 text-sm">🕒</span> 
@@ -177,7 +214,11 @@
         </div>
     </div>
 
+    <!-- =========================================
+         SECTION 4: JAVASCRIPT LOGIC
+    ========================================= -->
     <script>
+        // 4.1 Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyAxgj4sKMUdMQJWj2hU2rbcT4eZ926sskQ",
             authDomain: "leave-system-online.firebaseapp.com",
@@ -190,7 +231,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Initial Data (User List)
+        // 4.2 Initial Data (Mock Users)
         const initialUsers = [
             { id: "u001", rank: "น.ท.หญิง", name: "พัชรินทร์ วงษ์วุฒิศักดิ์", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
             { id: "u002", rank: "น.ท.หญิง", name: "ขจรจิตต์ ชิณพงศ์", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
@@ -204,8 +245,9 @@
             { id: "u010", rank: "พ.อ.ต.", name: "ภูริพงษ์ สลางสิงห์", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
             { id: "u011", rank: "นาย", name: "กฤษดา คงกัลป์", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
             { id: "u012", rank: "นาย", name: "ประเสริฐ ทับแถม", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            { id: "u013", rank: "น.ส.", name: "เสาวณีย์ อินกาย", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } }
-            { id: "u013", rank: "นาย", name: "อภิรักษ์  นิลเกษม", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } }
+            { id: "u013", rank: "น.ส.", name: "เสาวณีย์ อินกาย", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            // เพิ่มรายชื่อตกหล่น
+            { id: "u014", rank: "นาย", name: "อภิรักษ์ นิลเกษม", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } }
         ];
 
         let allUsers = [];
@@ -215,14 +257,40 @@
         async function initSystem() {
             try {
                 const snapshot = await db.collection("users").get();
+                
+                // กรณี 1: ฐานข้อมูลว่างเปล่า (ครั้งแรก) -> อัปโหลดทั้งหมด
                 if (snapshot.empty) {
                     const batch = db.batch();
                     initialUsers.forEach((user) => batch.set(db.collection("users").doc(user.id), user));
                     await batch.commit();
                     allUsers = initialUsers;
-                } else {
+                    console.log("Initial Setup Complete");
+                } 
+                // กรณี 2: มีข้อมูลอยู่แล้ว -> เช็คว่ามีชื่อใหม่ๆ (เช่น u014, u015) หรือยัง?
+                else {
                     allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    // ระบบตรวจสอบ Auto-Add: วนลูปเช็ค initialUsers ทุกคน
+                    // ถ้าคนไหนยังไม่มีใน Database ให้เพิ่มเข้าไปเลย (รองรับการเพิ่มชื่อในอนาคตได้ตลอด)
+                    const batch = db.batch();
+                    let hasNewUser = false;
+
+                    initialUsers.forEach(initUser => {
+                        const exists = allUsers.find(u => u.id === initUser.id);
+                        if (!exists) {
+                            const docRef = db.collection("users").doc(initUser.id);
+                            batch.set(docRef, initUser);
+                            allUsers.push(initUser); // อัปเดตตัวแปรในเครื่องทันที
+                            hasNewUser = true;
+                            console.log(`Auto-added missing user: ${initUser.name}`);
+                        }
+                    });
+
+                    if (hasNewUser) {
+                        await batch.commit();
+                    }
                 }
+                
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('screen-home').style.display = 'flex';
                 renderUserList(allUsers);
@@ -237,8 +305,9 @@
                 div.className = 'flex items-center p-3 rounded-xl cursor-pointer hover:bg-pink-50 transition border border-transparent hover:border-pink-200 group';
                 div.onclick = () => selectUser(u);
                 const colors = ['bg-pink-200', 'bg-blue-200', 'bg-green-200', 'bg-yellow-200', 'bg-purple-200'];
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
                 div.innerHTML = `
-                    <div class="h-10 w-10 ${colors[Math.floor(Math.random()*colors.length)]} rounded-full flex items-center justify-center text-gray-600 font-bold mr-3 group-hover:scale-110 transition">${u.name.charAt(0)}</div>
+                    <div class="h-10 w-10 ${randomColor} rounded-full flex items-center justify-center text-gray-600 font-bold mr-3 group-hover:scale-110 transition">${u.name.charAt(0)}</div>
                     <div><div class="font-bold text-gray-700 group-hover:text-pink-500">${u.name}</div><div class="text-xs text-gray-400">${u.rank}</div></div>
                 `;
                 list.appendChild(div);
@@ -283,7 +352,7 @@
             // Calculate Days
             const days = Math.ceil(Math.abs(new Date(endStr) - new Date(startStr)) / (1000 * 60 * 60 * 24)) + 1;
             
-            // LOGIC พิเศษ: ถ้าเป็น Cancel ให้แสดง Popup ถาม หรือทำงานแบบคืนวันลา
+            // Logic: Is it a Cancellation?
             const isCancel = type === 'cancel';
             const confirmMsg = isCancel ? 
                 `⚠️ ยืนยันการ "ยกเลิกวันลา" จำนวน ${days} วัน ใช่ไหม?\n(วันลาจะถูกคืนเข้าสู่ระบบ)` : 
@@ -295,7 +364,7 @@
             btn.innerHTML = "⏳ กำลังประมวลผล..."; btn.disabled = true;
 
             try {
-                // 1. Save Record
+                // 1. Save Record to Firestore
                 const record = {
                     userId: currentUser.id,
                     userName: currentUser.name,
@@ -307,7 +376,6 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 
-                // ถ้าเป็น cancel เก็บข้อมูลเพิ่ม (ลาเดิมวันที่เท่าไหร่)
                 if(isCancel) {
                     record.cancelTargetType = document.getElementById('cancelTargetType').value;
                     record.origStart = document.getElementById('origStart').value;
@@ -316,15 +384,15 @@
 
                 await db.collection("leave_records").add(record);
 
-                // 2. Update Quota (ตัด หรือ คืน)
+                // 2. Update Quota (Cut or Refund)
                 const userRef = db.collection("users").doc(currentUser.id);
                 const updateField = {};
                 
-                // ถ้า isCancel = True ให้คูณ -1 (เพื่อลบยอดใช้ = คืนวันลา)
-                // ถ้าลาปกติ = 1 (เพื่อบวกยอดใช้)
+                // If Cancel, multiply by -1 (to subtract from 'used' = refund)
+                // If Normal Leave, multiply by 1 (to add to 'used')
                 const multiplier = isCancel ? -1 : 1; 
                 
-                // ถ้า Cancel ต้องไปแก้ที่ยอดของ Target ที่เลือก (เช่น ยกเลิกพักร้อน ก็ต้องไปคืนยอดพักร้อน)
+                // Target type for quota adjustment
                 const targetType = isCancel ? document.getElementById('cancelTargetType').value : type;
 
                 if(targetType === 'sick') updateField['quota.used_sick'] = firebase.firestore.FieldValue.increment(days * multiplier);
@@ -332,6 +400,9 @@
                 if(targetType === 'vacation') updateField['quota.used_vacation'] = firebase.firestore.FieldValue.increment(days * multiplier);
 
                 if(Object.keys(updateField).length > 0) await userRef.update(updateField);
+
+                // 3. Generate PDF (Placeholder for next step)
+                // await generatePDF(currentUser, type, startStr, endStr, reason);
 
                 alert(isCancel ? "✅ ยกเลิกวันลาเรียบร้อย! คืนวันลาให้แล้วครับ" : "✅ บันทึกการลาเรียบร้อย!");
                 location.reload();
@@ -363,9 +434,8 @@
                 labelStart.innerText = "เริ่มวันที่";
                 labelEnd.innerText = "ถึงวันที่";
                 btn.className = "w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white text-lg py-4 rounded-2xl font-bold shadow-lg shadow-pink-200 hover:shadow-xl hover:scale-[1.02] btn-pastel flex justify-center items-center gap-2";
-                btn.innerHTML = "<span>🖨️</span> บันทึกและพิมพ์ใบลา";
+                btn.innerHTML = "<span>🖨️</span> บันทึกและพิมพ์เอกสาร";
                 
-                // Dynamic Placeholder
                 if(type === 'sick') reasonPH.placeholder = "ป่วยเป็นไข้หวัด พักที่...";
                 else if(type === 'personal') reasonPH.placeholder = "ทำธุระส่วนตัว ไปจังหวัด...";
                 else reasonPH.placeholder = "ระบุรายละเอียด...";
@@ -375,7 +445,21 @@
         function switchTab(tab) {
             document.getElementById('tab-request').style.display = tab === 'request' ? 'block' : 'none';
             document.getElementById('tab-history').style.display = tab === 'history' ? 'block' : 'none';
-            // (Button styling logic simplified for brevity)
+            
+            const btnReq = document.getElementById('btn-tab-request');
+            const btnHis = document.getElementById('btn-tab-history');
+            
+            // Simple class toggling
+            const activeClass = "bg-pink-400 text-white shadow-md";
+            const inactiveClass = "text-gray-500 hover:bg-gray-50";
+            
+            if(tab === 'request') {
+                btnReq.className = `flex-1 py-3 text-center rounded-xl font-bold text-sm ${activeClass}`;
+                btnHis.className = `flex-1 py-3 text-center rounded-xl font-bold text-sm ${inactiveClass}`;
+            } else {
+                btnHis.className = `flex-1 py-3 text-center rounded-xl font-bold text-sm bg-blue-400 text-white shadow-md`;
+                btnReq.className = `flex-1 py-3 text-center rounded-xl font-bold text-sm ${inactiveClass}`;
+            }
         }
 
         async function loadHistory(userId) {
@@ -401,6 +485,7 @@
         function translateType(t) { return {sick:"ลาป่วย",personal:"ลากิจ",vacation:"ลาพักร้อน",ordination:"ลาบวช",maternity:"ลาคลอด",help_wife:"ช่วยภริยาคลอด",cancel:"ยกเลิกวันลา"}[t] || t; }
         function goHome() { location.reload(); }
 
+        // Start the App
         initSystem();
     </script>
 </body>
