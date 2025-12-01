@@ -39,7 +39,7 @@
             <input type="text" id="searchInput" placeholder="พิมพ์ชื่อ..." class="w-full pl-4 p-4 rounded-xl bg-gray-50 border-2 border-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-200 mb-4" onkeyup="filterUsers()">
             <div id="userList" class="h-64 overflow-y-auto space-y-2 pr-2"></div>
         </div>
-        <div class="mt-4 text-xs text-gray-400 text-center">ver. 2.3 (Real-time History)</div>
+        <div class="mt-4 text-xs text-gray-400 text-center">ver. 2.4 (New Coordinates)</div>
     </div>
 
     <!-- Dashboard -->
@@ -56,6 +56,7 @@
 
         <div class="container mx-auto px-4 max-w-2xl">
             <div class="pastel-card p-6 bg-white mb-6">
+                
                 <!-- TABS -->
                 <div class="flex border-b border-gray-200 mb-6">
                     <button onclick="switchTab('request')" id="tab-btn-request" class="flex-1 py-2 font-bold text-blue-600 border-b-2 border-blue-600">📝 เขียนใบลา</button>
@@ -65,6 +66,7 @@
                 <!-- FORM SECTION -->
                 <div id="section-request">
                     <form id="leaveForm" onsubmit="handleSaveAndPrint(event)">
+                        
                         <div class="mb-4">
                             <label class="block text-gray-700 font-bold mb-2">ประเภทการลา</label>
                             <select id="leaveType" class="w-full p-3 rounded-lg border bg-gray-50">
@@ -78,9 +80,10 @@
                             </select>
                         </div>
 
+                        <!-- ตำแหน่ง (ให้แก้ไขได้) -->
                         <div class="mb-4">
-                            <label class="block text-gray-700 font-bold mb-2">ตำแหน่ง (แก้ไขได้)</label>
-                            <input type="text" id="userPosition" class="w-full p-3 rounded-lg border bg-blue-50" placeholder="ระบุตำแหน่ง...">
+                            <label class="block text-gray-700 font-bold mb-2">ตำแหน่ง</label>
+                            <input type="text" id="userPosition" class="w-full p-3 rounded-lg border bg-blue-50" placeholder="ระบุตำแหน่งของคุณ...">
                         </div>
 
                         <div class="mb-4">
@@ -98,7 +101,7 @@
 
                         <div class="mb-4">
                             <label class="block text-gray-700 font-bold mb-2">ไปจังหวัด / สถานที่ติดต่อ</label>
-                            <input type="text" id="reason" class="w-full p-3 rounded-lg border" placeholder="เช่น จ.เชียงใหม่, พักที่บ้านเลขที่..." required>
+                            <input type="text" id="reason" class="w-full p-3 rounded-lg border" placeholder="เช่น จ.สุพรรณบุรี" required>
                         </div>
 
                         <div class="mb-6">
@@ -108,10 +111,6 @@
                         </div>
 
                         <div class="flex items-center mb-4 space-x-4">
-                            <div class="flex items-center">
-                                <input id="strikeCheck" type="checkbox" checked class="w-4 h-4 text-blue-600 border-gray-300 rounded">
-                                <label for="strikeCheck" class="ml-2 text-sm text-gray-700">ขีดฆ่าคำนำหน้า</label>
-                            </div>
                             <div class="flex items-center">
                                 <input id="debugCheck" type="checkbox" class="w-4 h-4 text-red-600 border-gray-300 rounded">
                                 <label for="debugCheck" class="ml-2 text-sm text-gray-700">โหมดช่วยเล็ง (จุดแดง)</label>
@@ -126,13 +125,9 @@
 
                 <!-- HISTORY SECTION -->
                 <div id="section-history" class="hidden-section">
-                    <div class="grid grid-cols-3 gap-3 mb-6">
-                        <div class="bg-red-50 p-3 rounded text-center border border-red-100"><p class="text-xs text-red-400 font-bold">ป่วยคงเหลือ</p><p class="text-2xl font-bold text-red-500" id="quota-sick">-</p></div>
-                        <div class="bg-blue-50 p-3 rounded text-center border border-blue-100"><p class="text-xs text-blue-400 font-bold">กิจคงเหลือ</p><p class="text-2xl font-bold text-blue-500" id="quota-personal">-</p></div>
-                        <div class="bg-green-50 p-3 rounded text-center border border-green-100"><p class="text-xs text-green-400 font-bold">พักร้อนคงเหลือ</p><p class="text-2xl font-bold text-green-500" id="quota-vacation">-</p></div>
+                    <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4 text-sm text-yellow-800">
+                        ⚠️ <b>หากประวัติไม่ขึ้น:</b> กรุณากด F12 ดู Error ใน Console แล้วคลิกลิงก์เพื่อสร้าง Index ใน Firebase ครับ
                     </div>
-                    
-                    <h3 class="font-bold text-gray-700 mb-3 border-b pb-2">รายการลาล่าสุด</h3>
                     <ul id="historyList" class="space-y-3 max-h-96 overflow-y-auto">
                         <li class="text-center text-gray-400 py-4">กำลังโหลดข้อมูล...</li>
                     </ul>
@@ -157,25 +152,25 @@
 
         // USERS DATA
         const initialUsers = [
-            { id: "u001", rank: "น.ท.หญิง", name: "พัชรินทร์ วงษ์วุฒิศักดิ์", gender: "female", position: "พยาบาล", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            { id: "u002", rank: "น.ท.หญิง", name: "ขจรจิตต์ ชิณพงศ์", gender: "female", position: "พยาบาล", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            { id: "u003", rank: "น.ต.", name: "ธณกร พึ่งพิมาย", gender: "male", position: "นายทหาร", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            { id: "u004", rank: "น.ต.หญิง", name: "กานต์พิชชา เชาวลิต", gender: "female", position: "นายทหาร", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            { id: "u005", rank: "ร.อ.หญิง", name: "รุ่งทิวา รัตน์อ่อน", gender: "female", position: "นายทหาร", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            { id: "u006", rank: "ร.อ.หญิง", name: "อภิราม สธนกุล", gender: "female", position: "นายทหาร", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            { id: "u007", rank: "ร.อ.หญิง", name: "ตรีฐิตา อินทะชัย", gender: "female", position: "นายทหาร", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            { id: "u008", rank: "พ.อ.อ.", name: "นพพร อรุณฉาย", gender: "male", position: "เจ้าหน้าที่", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            { id: "u009", rank: "พ.อ.อ.หญิง", name: "สุธิมา ศิริพิพัฒน์พงษ์", gender: "female", position: "เจ้าหน้าที่", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            { id: "u010", rank: "พ.อ.ต.", name: "ภูริพงษ์ สลางสิงห์", gender: "male", position: "เจ้าหน้าที่", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            { id: "u011", rank: "นาย", name: "กฤษดา คงกัลป์", gender: "male", position: "พนักงานราชการ", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            { id: "u012", rank: "นาย", name: "ประเสริฐ ทับแถม", gender: "male", position: "ลูกจ้างประจำ", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            { id: "u013", rank: "น.ส.", name: "เสาวณีย์ อินกาย", gender: "female", position: "พนักงานราชการ", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            { id: "u015", rank: "นาย", name: "อภิรักษ์ นิลเกษม", gender: "male", position: "พนักงานราชการ", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } }
+            { id: "u001", rank: "น.ท.หญิง", name: "พัชรินทร์ วงษ์วุฒิศักดิ์", gender: "female", position: "พยาบาล", quota: { sick: 60, personal: 45, vacation: 10 } },
+            { id: "u002", rank: "น.ท.หญิง", name: "ขจรจิตต์ ชิณพงศ์", gender: "female", position: "พยาบาล", quota: { sick: 60, personal: 45, vacation: 10 } },
+            { id: "u003", rank: "น.ต.", name: "ธณกร พึ่งพิมาย", gender: "male", position: "นายทหาร", quota: { sick: 60, personal: 45, vacation: 10 } },
+            { id: "u004", rank: "น.ต.หญิง", name: "กานต์พิชชา เชาวลิต", gender: "female", position: "นายทหาร", quota: { sick: 60, personal: 45, vacation: 10 } },
+            { id: "u005", rank: "ร.อ.หญิง", name: "รุ่งทิวา รัตน์อ่อน", gender: "female", position: "นายทหาร", quota: { sick: 60, personal: 45, vacation: 10 } },
+            { id: "u006", rank: "ร.อ.หญิง", name: "อภิราม สธนกุล", gender: "female", position: "นายทหาร", quota: { sick: 60, personal: 45, vacation: 10 } },
+            { id: "u007", rank: "ร.อ.หญิง", name: "ตรีฐิตา อินทะชัย", gender: "female", position: "นายทหาร", quota: { sick: 60, personal: 45, vacation: 10 } },
+            { id: "u008", rank: "พ.อ.อ.", name: "นพพร อรุณฉาย", gender: "male", position: "เจ้าหน้าที่", quota: { sick: 60, personal: 45, vacation: 10 } },
+            { id: "u009", rank: "พ.อ.อ.หญิง", name: "สุธิมา ศิริพิพัฒน์พงษ์", gender: "female", position: "เจ้าหน้าที่", quota: { sick: 60, personal: 45, vacation: 10 } },
+            { id: "u010", rank: "พ.อ.ต.", name: "ภูริพงษ์ สลางสิงห์", gender: "male", position: "เจ้าหน้าที่", quota: { sick: 60, personal: 45, vacation: 10 } },
+            { id: "u011", rank: "นาย", name: "กฤษดา คงกัลป์", gender: "male", position: "พนักงานราชการ", quota: { sick: 60, personal: 45, vacation: 10 } },
+            { id: "u012", rank: "นาย", name: "ประเสริฐ ทับแถม", gender: "male", position: "ลูกจ้างประจำ", quota: { sick: 60, personal: 45, vacation: 10 } },
+            { id: "u013", rank: "น.ส.", name: "เสาวณีย์ อินกาย", gender: "female", position: "พนักงานราชการ", quota: { sick: 60, personal: 45, vacation: 10 } },
+            { id: "u015", rank: "นาย", name: "อภิรักษ์ นิลเกษม", gender: "male", position: "พนักงานราชการ", quota: { sick: 60, personal: 45, vacation: 10 } }
         ];
 
         let allUsers = [];
         let currentUser = null;
-        let historyUnsubscribe = null; // ตัวแปรสำหรับปิดการฟังข้อมูล
+        let historyUnsubscribe = null;
 
         async function initSystem() {
             try {
@@ -246,30 +241,15 @@
             document.getElementById('user-fullname').innerText = `${u.rank} ${u.name}`;
             document.getElementById('userPosition').value = u.position || '';
             
-            // เริ่มฟังข้อมูลประวัติทันที
             listenToHistory(u.id);
-            // อัปเดตยอดวันลา
-            updateQuotaUI(u.quota);
         }
 
-        function updateQuotaUI(q) {
-            document.getElementById('quota-sick').innerText = q.sick - q.used_sick;
-            document.getElementById('quota-personal').innerText = q.personal - q.used_personal;
-            document.getElementById('quota-vacation').innerText = q.vacation - q.used_vacation;
-        }
-
-        // ============================================
-        // 📊 HISTORY LOGIC (REAL-TIME)
-        // ============================================
         function listenToHistory(userId) {
             const list = document.getElementById('historyList');
-            
-            // ยกเลิกการฟังอันเก่าก่อน (ถ้ามี)
             if (historyUnsubscribe) historyUnsubscribe();
 
             list.innerHTML = '<li class="text-center text-gray-400 py-4">กำลังโหลด...</li>';
 
-            // สั่งฟังข้อมูลจาก Firebase (onSnapshot)
             historyUnsubscribe = db.collection("leave_records")
                 .where("userId", "==", userId)
                 .orderBy("timestamp", "desc")
@@ -279,7 +259,6 @@
                         list.innerHTML = '<li class="text-center text-gray-400 py-4">ยังไม่มีประวัติการลา</li>';
                         return;
                     }
-
                     list.innerHTML = '';
                     snapshot.forEach(doc => {
                         const d = doc.data();
@@ -299,7 +278,7 @@
                     });
                 }, (error) => {
                     console.error("Error fetching history:", error);
-                    list.innerHTML = '<li class="text-center text-red-400 py-4">โหลดข้อมูลไม่สำเร็จ</li>';
+                    list.innerHTML = '<li class="text-center text-red-400 py-4">โหลดข้อมูลไม่สำเร็จ (ตรวจสอบ Index)</li>';
                 });
         }
 
@@ -362,7 +341,6 @@
                 const thaiFont = await pdfDoc.embedFont(fontBytes);
                 const page = pdfDoc.getPages()[0];
                 const isDebug = document.getElementById('debugCheck').checked;
-                const isStrike = document.getElementById('strikeCheck').checked;
                 
                 const draw = (text, x, y, size=16) => {
                     page.drawText(toThaiNum(text) || '', { x, y, size, font: thaiFont, color: PDFLib.rgb(0,0,0) });
@@ -372,63 +350,62 @@
                     }
                 };
 
-                const strike = (x, y, width=20) => {
-                    if(!isStrike) return;
-                    page.drawLine({ start: { x, y: y+5 }, end: { x: x+width, y: y+5 }, thickness: 1, color: PDFLib.rgb(0,0,0) });
-                };
-
                 const dStart = new Date(start);
                 const dEnd = new Date(end);
                 const now = new Date();
                 const totalDays = document.getElementById('totalDays').value || '0';
                 const toWhom = document.getElementById('toWhom').value;
-                const userPos = document.getElementById('userPosition').value;
+                const userPos = document.getElementById('userPosition').value; // เอาจาก input โดยตรง
 
-                // 1. Header
-                draw('ผสภ.กวป.พอ.', 430, 740); 
-                draw(now.getDate(), 353, 720); 
-                draw(formatMonth(now.getMonth()), 420, 720); 
-                draw(now.getFullYear()+543, 493, 720); 
+                // --- 1. ส่วนหัว (Header) ---
+                draw('ผสภ.กวป.พอ.', 430, 740); // เขียนที่
+                draw(now.getDate(), 353, 720); // วันที่
+                draw(formatMonth(now.getMonth()), 420, 720); // เดือน
+                draw(now.getFullYear()+543, 493, 720); // พ.ศ.
 
+                // เรียน
                 const toText = toWhom === 'head' ? 'หน.ผสภ.กวป.พอ.' : 'ผอ.กวป.พอ.';
                 draw(toText, 100, 675);
 
-                // 2. User Info
-                if (user.gender === 'male') {
-                    strike(165, 655, 20); 
-                } else {
-                    strike(125, 655, 20); 
-                }
+                // --- 2. ข้อมูลผู้ลา ---
+                // (ขีดฆ่าปิดไว้ก่อน)
+                // if (user.gender === 'male') strike... 
 
-                draw(`${user.rank} ${user.name}`, 216, 625); 
-                draw(userPos || '-', 390, 625); 
-                draw('กวป.พอ.', 100, 630); 
+                draw(`${user.rank} ${user.name}`, 216, 625); // ชื่อ
+                draw(userPos || '-', 390, 625); // ตำแหน่ง (จาก Input)
+                // draw('กวป.พอ.', 100, 630); // สังกัด (ลบออกตามสั่ง)
 
-                // 3. Vacation Logic
+                // --- 3. เฉพาะใบลาพักผ่อน (แบบ ๗) ---
                 if (type === 'vacation') {
+                    // กำหนด ... วัน
                     draw(totalDays, 315, 600); 
+
+                    // ตั้งแต่วันที่
                     draw(dStart.getDate(), 445, 600);
                     draw(formatMonth(dStart.getMonth()), 110, 578);
                     draw((dStart.getFullYear()+543).toString().slice(-2), 225, 578);
 
+                    // ถึงวันที่
                     draw(dEnd.getDate(), 375, 578); 
                     draw(formatMonth(dEnd.getMonth()), 470, 578);
                     draw((dEnd.getFullYear()+543).toString().slice(-2), 96, 556);
 
-                    if (user.gender === 'male') strike(170, 530, 20); else strike(135, 530, 25);
-
+                    // ไปจังหวัด
                     draw(reason, 350, 556); 
 
-                    // Footer Dates
+                    // ส่วนท้าย: "ในวันที่... และกลับในวันที่..."
+                    // วันเริ่มลา
                     draw(dStart.getDate(), 115, 535);
                     draw(formatMonth(dStart.getMonth()), 230, 535);
                     draw((dStart.getFullYear()+543).toString().slice(-2), 345, 535);
 
+                    // วันกลับ
                     draw(dEnd.getDate(), 460, 535);
                     draw(formatMonth(dEnd.getMonth()), 125, 515);
                     draw((dEnd.getFullYear()+543).toString().slice(-2), 212, 515);
                 }
 
+                // Save
                 const pdfBytesOut = await pdfDoc.save();
                 const blob = new Blob([pdfBytesOut], { type: "application/pdf" });
                 const link = document.createElement('a');
@@ -438,7 +415,7 @@
 
             } catch (err) {
                 console.error(err);
-                alert("เกิดข้อผิดพลาดในการสร้างไฟล์ PDF: " + err.message);
+                alert("เกิดข้อผิดพลาด: " + err.message);
             }
         }
 
@@ -475,14 +452,6 @@
                 const userRef = db.collection("users").doc(currentUser.id);
                 const field = type === 'sick' ? 'quota.used_sick' : type === 'personal' ? 'quota.used_personal' : 'quota.used_vacation';
                 await userRef.update({ [field]: firebase.firestore.FieldValue.increment(days) });
-
-                // Refresh Quota UI locally
-                const newQuota = { ...currentUser.quota };
-                if (type === 'sick') newQuota.used_sick += days;
-                else if (type === 'personal') newQuota.used_personal += days;
-                else newQuota.used_vacation += days;
-                updateQuotaUI(newQuota);
-                currentUser.quota = newQuota; // Update local user obj
 
                 alert("✅ บันทึกสำเร็จ!");
                 document.getElementById('leaveForm').reset();
