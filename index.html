@@ -5,32 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบลาออนไลน์ (Sanitation Dept.)</title>
     
-    <!-- =========================================
-         SECTION 1: LIBRARIES & CONFIG
-    ========================================= -->
-    <!-- Tailwind CSS (Styling) -->
+    <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts (Sarabun) -->
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;800&display=swap" rel="stylesheet">
     
-    <!-- Firebase SDK (Database) -->
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
     
-    <!-- PDF Lib (Document Generation) -->
+    <!-- PDF Lib -->
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://unpkg.com/@pdf-lib/fontkit@0.0.4/dist/fontkit.umd.min.js"></script>
 
-    <!-- =========================================
-         SECTION 2: CUSTOM CSS
-    ========================================= -->
     <style>
         body { 
             font-family: 'Sarabun', sans-serif; 
-            background: linear-gradient(135deg, #fdfbf7 0%, #eef2f3 100%); /* Soft Gradient */
+            background: linear-gradient(135deg, #fdfbf7 0%, #eef2f3 100%); 
         }
-        
-        /* Glassmorphism Card Style */
         .pastel-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -38,40 +29,20 @@
             box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.5);
         }
-
-        /* Button Animations */
         .btn-pastel { transition: all 0.3s ease; }
         .btn-pastel:hover { transform: translateY(-2px); }
-        .btn-pastel:active { transform: scale(0.95); }
-
-        /* Helpers */
         .hidden-section { display: none; }
-        .slide-down { animation: slideDown 0.3s ease-out forwards; }
-        
-        @keyframes slideDown { 
-            from { opacity: 0; transform: translateY(-10px); } 
-            to { opacity: 1; transform: translateY(0); } 
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="text-gray-700">
 
-    <!-- =========================================
-         SECTION 3: UI COMPONENTS
-    ========================================= -->
-
-    <!-- 3.1 Loading Screen -->
+    <!-- Loading Screen -->
     <div id="loading-screen" class="fixed inset-0 bg-pink-50 z-50 flex flex-col items-center justify-center">
         <div class="animate-bounce text-6xl mb-4">🐰</div>
         <p class="text-pink-400 text-xl font-bold animate-pulse">กำลังโหลดข้อมูล...</p>
     </div>
 
-    <!-- 3.2 Login / Home Screen -->
+    <!-- Home Screen -->
     <div id="screen-home" class="min-h-screen flex flex-col items-center justify-center px-4 py-10 hidden-section bg-gradient-to-b from-pink-50 to-blue-50">
         <div class="text-center mb-8">
             <div class="text-6xl mb-2">🏥✨</div>
@@ -81,20 +52,16 @@
 
         <div class="w-full max-w-md pastel-card p-6">
             <label class="block text-gray-600 font-bold mb-3 ml-1">🔍 ค้นหา หรือ เลือกชื่อของคุณ</label>
-            <div class="relative mb-4">
-                <input type="text" id="searchInput" placeholder="พิมพ์ชื่อเล่น หรือ ชื่อจริง..." 
-                       class="w-full pl-4 p-4 rounded-xl bg-gray-50 border-2 border-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-200"
-                       onkeyup="filterUsers()">
-            </div>
+            <input type="text" id="searchInput" placeholder="พิมพ์ชื่อเล่น หรือ ชื่อจริง..." 
+                   class="w-full pl-4 p-4 rounded-xl bg-gray-50 border-2 border-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-200 mb-4"
+                   onkeyup="filterUsers()">
             <div id="userList" class="h-64 overflow-y-auto space-y-2 pr-2"></div>
         </div>
         <p class="mt-8 text-xs text-gray-400">© 2025 Sanitation Dept. | Made with 💖</p>
     </div>
 
-    <!-- 3.3 Dashboard Screen -->
+    <!-- Dashboard Screen -->
     <div id="screen-dashboard" class="hidden-section min-h-screen bg-gray-50 pb-10">
-        
-        <!-- Header Profile -->
         <div class="bg-white rounded-b-3xl shadow-sm p-6 mb-6 relative overflow-hidden">
             <div class="flex justify-between items-start relative z-10">
                 <div class="flex items-center">
@@ -111,18 +78,17 @@
         </div>
 
         <div class="container mx-auto px-4 max-w-2xl">
-            <!-- Navigation Tabs -->
+            <!-- Tabs -->
             <div class="flex bg-white p-1 rounded-2xl shadow-sm mb-6 mx-4">
                 <button onclick="switchTab('request')" id="btn-tab-request" class="flex-1 py-3 text-center rounded-xl font-bold text-sm bg-pink-400 text-white shadow-md">📝 เขียนใบลา</button>
                 <button onclick="switchTab('history')" id="btn-tab-history" class="flex-1 py-3 text-center rounded-xl font-bold text-sm text-gray-500 hover:bg-gray-50">📊 เช็ควันลา</button>
             </div>
 
-            <!-- Tab Content: Request Form -->
+            <!-- Tab: Request -->
             <div id="tab-request" class="mx-2">
                 <div class="pastel-card p-6 bg-white">
                     <form id="leaveForm" onsubmit="handleSaveAndPrint(event)">
                         
-                        <!-- 1. เลือกประเภท -->
                         <div class="mb-5">
                             <label class="block text-gray-700 font-bold mb-2">📌 เลือกประเภทเอกสาร</label>
                             <select id="leaveType" class="w-full p-4 rounded-xl bg-blue-50 font-medium text-blue-800 focus:outline-none cursor-pointer" onchange="toggleFields()">
@@ -136,12 +102,12 @@
                             </select>
                         </div>
 
-                        <!-- 2. ส่วนพิเศษ: สำหรับการยกเลิกวันลา -->
-                        <div id="cancelSection" class="hidden-section mb-6 bg-red-50 p-4 rounded-xl border border-red-100 slide-down">
-                            <h3 class="text-red-500 font-bold mb-3 flex items-center">🚫 ข้อมูลใบลาเดิม (ที่จะยกเลิก)</h3>
+                        <!-- Cancel Section -->
+                        <div id="cancelSection" class="hidden-section mb-6 bg-red-50 p-4 rounded-xl border border-red-100">
+                            <h3 class="text-red-500 font-bold mb-3">🚫 ข้อมูลใบลาเดิม</h3>
                             <div class="mb-3">
-                                <label class="block text-gray-600 text-xs mb-1">ต้องการคืนวันลาประเภทไหน?</label>
-                                <select id="cancelTargetType" class="w-full p-3 rounded-lg bg-white border border-red-200 text-sm">
+                                <label class="block text-gray-600 text-xs mb-1">ประเภทวันลาที่คืน</label>
+                                <select id="cancelTargetType" class="w-full p-3 rounded-lg border border-red-200 text-sm">
                                     <option value="sick">😷 ลาป่วย</option>
                                     <option value="personal">🚗 ลากิจ</option>
                                     <option value="vacation">🏖️ ลาพักผ่อน</option>
@@ -154,19 +120,11 @@
                                 <div><label class="block text-gray-500 text-xs mb-1">เริ่มลาวันที่</label><input type="date" id="origStart" class="w-full p-2 rounded-lg border border-gray-200 text-sm"></div>
                                 <div><label class="block text-gray-500 text-xs mb-1">ถึงวันที่</label><input type="date" id="origEnd" class="w-full p-2 rounded-lg border border-gray-200 text-sm"></div>
                             </div>
-                            <p class="text-xs text-red-400">* กรอกเพื่ออ้างอิงในใบขอยกเลิก</p>
                         </div>
 
-                        <!-- 3. วันที่และรายละเอียด -->
                         <div class="grid grid-cols-2 gap-4 mb-5">
-                            <div>
-                                <label id="labelStartDate" class="block text-gray-600 text-sm mb-1 ml-1">เริ่มวันที่</label>
-                                <input type="date" id="startDate" class="w-full p-3 rounded-xl bg-gray-50 border border-gray-200" required>
-                            </div>
-                            <div>
-                                <label id="labelEndDate" class="block text-gray-600 text-sm mb-1 ml-1">ถึงวันที่</label>
-                                <input type="date" id="endDate" class="w-full p-3 rounded-xl bg-gray-50 border border-gray-200" required>
-                            </div>
+                            <div><label id="labelStartDate" class="block text-gray-600 text-sm mb-1 ml-1">เริ่มวันที่</label><input type="date" id="startDate" class="w-full p-3 rounded-xl bg-gray-50 border border-gray-200" required></div>
+                            <div><label id="labelEndDate" class="block text-gray-600 text-sm mb-1 ml-1">ถึงวันที่</label><input type="date" id="endDate" class="w-full p-3 rounded-xl bg-gray-50 border border-gray-200" required></div>
                         </div>
 
                         <div class="mb-6">
@@ -181,44 +139,23 @@
                 </div>
             </div>
 
-            <!-- Tab Content: History & Quota -->
+            <!-- Tab: History -->
             <div id="tab-history" class="hidden-section mx-2">
-                <!-- Quota Cards -->
                 <div class="grid grid-cols-3 gap-3 mb-6">
-                    <div class="bg-red-50 p-4 rounded-2xl text-center border border-red-100 shadow-sm">
-                        <div class="text-2xl mb-1">😷</div>
-                        <p class="text-xs text-red-400 font-bold uppercase">ลาป่วยเหลือ</p>
-                        <p class="text-3xl font-extrabold text-red-500 mt-1" id="quota-sick">-</p>
-                    </div>
-                    <div class="bg-blue-50 p-4 rounded-2xl text-center border border-blue-100 shadow-sm">
-                        <div class="text-2xl mb-1">🚗</div>
-                        <p class="text-xs text-blue-400 font-bold uppercase">ลากิจเหลือ</p>
-                        <p class="text-3xl font-extrabold text-blue-500 mt-1" id="quota-personal">-</p>
-                    </div>
-                    <div class="bg-green-50 p-4 rounded-2xl text-center border border-green-100 shadow-sm">
-                        <div class="text-2xl mb-1">🏖️</div>
-                        <p class="text-xs text-green-400 font-bold uppercase">พักร้อนเหลือ</p>
-                        <p class="text-3xl font-extrabold text-green-500 mt-1" id="quota-vacation">-</p>
-                    </div>
+                    <div class="bg-red-50 p-4 rounded-2xl text-center border border-red-100"><p class="text-xs text-red-400 font-bold">ป่วยคงเหลือ</p><p class="text-3xl font-extrabold text-red-500" id="quota-sick">-</p></div>
+                    <div class="bg-blue-50 p-4 rounded-2xl text-center border border-blue-100"><p class="text-xs text-blue-400 font-bold">กิจคงเหลือ</p><p class="text-3xl font-extrabold text-blue-500" id="quota-personal">-</p></div>
+                    <div class="bg-green-50 p-4 rounded-2xl text-center border border-green-100"><p class="text-xs text-green-400 font-bold">พักร้อนคงเหลือ</p><p class="text-3xl font-extrabold text-green-500" id="quota-vacation">-</p></div>
                 </div>
-                
-                <!-- History List -->
                 <div class="bg-white rounded-2xl shadow-sm p-5">
-                    <h3 class="font-bold text-gray-700 mb-4 flex items-center">
-                        <span class="bg-purple-100 text-purple-600 p-1.5 rounded-lg mr-2 text-sm">🕒</span> 
-                        ประวัติการลาล่าสุด
-                    </h3>
+                    <h3 class="font-bold text-gray-700 mb-4">🕒 ประวัติการลา</h3>
                     <ul id="historyList" class="space-y-3"></ul>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- =========================================
-         SECTION 4: JAVASCRIPT LOGIC
-    ========================================= -->
+    <!-- Logic Script -->
     <script>
-        // 4.1 Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyAxgj4sKMUdMQJWj2hU2rbcT4eZ926sskQ",
             authDomain: "leave-system-online.firebaseapp.com",
@@ -231,7 +168,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 4.2 Initial Data (Mock Users)
+        // Data Users
         const initialUsers = [
             { id: "u001", rank: "น.ท.หญิง", name: "พัชรินทร์ วงษ์วุฒิศักดิ์", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
             { id: "u002", rank: "น.ท.หญิง", name: "ขจรจิตต์ ชิณพงศ์", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
@@ -246,65 +183,43 @@
             { id: "u011", rank: "นาย", name: "กฤษดา คงกัลป์", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
             { id: "u012", rank: "นาย", name: "ประเสริฐ ทับแถม", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
             { id: "u013", rank: "น.ส.", name: "เสาวณีย์ อินกาย", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
-            // u014 (เอเธน) ลบออกแล้วตามคำสั่ง
-            // เพิ่มรายชื่อ นายอภิรักษ์ นิลเกษม
             { id: "u015", rank: "นาย", name: "อภิรักษ์ นิลเกษม", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } }
         ];
 
         let allUsers = [];
         let currentUser = null;
 
-        // --- CORE LOGIC ---
         async function initSystem() {
             try {
                 const snapshot = await db.collection("users").get();
-                
-                // กรณี 1: ฐานข้อมูลว่างเปล่า (ครั้งแรก) -> อัปโหลดทั้งหมด
                 if (snapshot.empty) {
                     const batch = db.batch();
-                    initialUsers.forEach((user) => batch.set(db.collection("users").doc(user.id), user));
+                    initialUsers.forEach(u => batch.set(db.collection("users").doc(u.id), u));
                     await batch.commit();
                     allUsers = initialUsers;
-                    console.log("Initial Setup Complete");
-                } 
-                // กรณี 2: มีข้อมูลอยู่แล้ว -> เช็ค Update
-                else {
+                } else {
                     allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    
+                    // Auto-sync & Cleanup
                     const batch = db.batch();
-                    let hasChanges = false;
-
-                    // 2.1 เพิ่มคนใหม่ที่ยังไม่มี (เช่น นายอภิรักษ์)
-                    initialUsers.forEach(initUser => {
-                        const exists = allUsers.find(u => u.id === initUser.id);
-                        if (!exists) {
-                            const docRef = db.collection("users").doc(initUser.id);
-                            batch.set(docRef, initUser);
-                            allUsers.push(initUser);
-                            hasChanges = true;
-                            console.log(`Auto-added missing user: ${initUser.name}`);
+                    let change = false;
+                    initialUsers.forEach(u => {
+                        if (!allUsers.find(au => au.id === u.id)) {
+                            batch.set(db.collection("users").doc(u.id), u);
+                            allUsers.push(u);
+                            change = true;
                         }
                     });
-
-                    // 2.2 ลบชื่อ "เอเธน" (u014) ออก ถ้ามีค้างอยู่ในระบบเก่า
-                    const athensDuplicate = allUsers.find(u => u.id === 'u014');
-                    if (athensDuplicate) {
-                        const docRef = db.collection("users").doc('u014');
-                        batch.delete(docRef);
-                        allUsers = allUsers.filter(u => u.id !== 'u014'); // เอาออกจากตัวแปรด้วย
-                        hasChanges = true;
-                        console.log("Auto-removed duplicate user: u014 (Athens)");
+                    if(allUsers.find(u => u.id === 'u014')) {
+                        batch.delete(db.collection("users").doc('u014'));
+                        allUsers = allUsers.filter(u => u.id !== 'u014');
+                        change = true;
                     }
-
-                    if (hasChanges) {
-                        await batch.commit();
-                    }
+                    if(change) await batch.commit();
                 }
-                
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('screen-home').style.display = 'flex';
                 renderUserList(allUsers);
-            } catch (error) { alert("Connection Error: " + error.message); }
+            } catch (error) { alert("DB Error: " + error.message); }
         }
 
         function renderUserList(users) {
@@ -312,39 +227,30 @@
             list.innerHTML = '';
             users.forEach(u => {
                 const div = document.createElement('div');
-                div.className = 'flex items-center p-3 rounded-xl cursor-pointer hover:bg-pink-50 transition border border-transparent hover:border-pink-200 group';
+                div.className = 'flex items-center p-3 rounded-xl cursor-pointer hover:bg-pink-50 transition border border-transparent hover:border-pink-200';
                 div.onclick = () => selectUser(u);
-                const colors = ['bg-pink-200', 'bg-blue-200', 'bg-green-200', 'bg-yellow-200', 'bg-purple-200'];
-                const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                div.innerHTML = `
-                    <div class="h-10 w-10 ${randomColor} rounded-full flex items-center justify-center text-gray-600 font-bold mr-3 group-hover:scale-110 transition">${u.name.charAt(0)}</div>
-                    <div><div class="font-bold text-gray-700 group-hover:text-pink-500">${u.name}</div><div class="text-xs text-gray-400">${u.rank}</div></div>
-                `;
+                const color = ['bg-pink-200','bg-blue-200','bg-green-200','bg-yellow-200'][Math.floor(Math.random()*4)];
+                div.innerHTML = `<div class="h-10 w-10 ${color} rounded-full flex items-center justify-center font-bold mr-3 text-gray-600">${u.name.charAt(0)}</div><div><div class="font-bold text-gray-700">${u.name}</div><div class="text-xs text-gray-400">${u.rank}</div></div>`;
                 list.appendChild(div);
             });
         }
-
         function filterUsers() {
             const val = document.getElementById('searchInput').value;
             renderUserList(val ? allUsers.filter(u => u.name.includes(val) || u.rank.includes(val)) : allUsers);
         }
-
-        async function selectUser(user) {
-            currentUser = user;
+        async function selectUser(u) {
+            currentUser = u;
             document.getElementById('loading-screen').style.display = 'flex';
-            const doc = await db.collection("users").doc(user.id).get();
+            const doc = await db.collection("users").doc(u.id).get();
             currentUser = { id: doc.id, ...doc.data() };
-            
             document.getElementById('user-fullname').innerText = `${currentUser.rank} ${currentUser.name}`;
             document.getElementById('user-initial').innerText = currentUser.name.charAt(0);
             updateQuotaUI();
-            
             document.getElementById('loading-screen').style.display = 'none';
             document.getElementById('screen-home').style.display = 'none';
             document.getElementById('screen-dashboard').style.display = 'block';
-            loadHistory(user.id);
+            loadHistory(u.id);
         }
-
         function updateQuotaUI() {
             const q = currentUser.quota;
             document.getElementById('quota-sick').innerText = q.sick - q.used_sick;
@@ -352,150 +258,132 @@
             document.getElementById('quota-vacation').innerText = q.vacation - q.used_vacation;
         }
 
+        // ============================================
+        // 🖨️ PDF GENERATION (พิกัดใบลาพักผ่อน)
+        // ============================================
+        async function generatePDF(user, type, start, end, reason, extra) {
+            try {
+                const fileMap = {
+                    'sick': 'form_sick.pdf', 'personal': 'form_personal.pdf', 
+                    'vacation': 'form_vacation.pdf', // เน้นไฟล์นี้
+                    'ordination': 'form_ordination.pdf', 'maternity': 'form_maternity.pdf', 
+                    'help_wife': 'form_help_wife.pdf', 'cancel': 'form_cancel.pdf'
+                };
+                
+                const fontBytes = await fetch('./Sarabun.ttf').then(res => res.arrayBuffer());
+                const pdfBytes = await fetch('./' + fileMap[type]).then(res => res.arrayBuffer());
+                
+                const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+                pdfDoc.registerFontkit(fontkit);
+                const thaiFont = await pdfDoc.embedFont(fontBytes);
+                const page = pdfDoc.getPages()[0];
+                const draw = (text, x, y, size=16) => page.drawText(text || '', { x, y, size, font: thaiFont, color: PDFLib.rgb(0,0,0) });
+                
+                const dStart = new Date(start);
+                const dEnd = new Date(end);
+                const now = new Date();
+                const days = Math.ceil(Math.abs(dEnd - dStart)/(1000*60*60*24))+1;
+
+                // --- HEADER ---
+                draw('กองเวชศาสตร์ป้องกัน พอ.', 430, 755);
+                draw(now.getDate().toString(), 450, 730);
+                draw(formatMonth(now.getMonth()), 495, 730);
+                draw((now.getFullYear()+543).toString(), 545, 730);
+                draw('ผอ.กวป.พอ.', 100, 690);
+                draw(`${user.rank}${user.name}`, 180, 655);
+                draw(user.rank, 380, 655);
+                draw('กวป.พอ.', 120, 630);
+
+                // --- VACATION SPECIFIC ---
+                if (type === 'vacation') {
+                    draw(days.toString(), 280, 580);
+                    draw(dStart.getDate().toString(), 370, 580);
+                    draw(formatMonth(dStart.getMonth()), 415, 580);
+                    draw((dStart.getFullYear()+543).toString().slice(-2), 485, 580);
+                    draw(reason, 230, 530); // สถานที่/รายละเอียด
+                } 
+                // --- SICK SPECIFIC ---
+                else if (type === 'sick') {
+                    draw(reason, 180, 580);
+                    draw(days.toString(), 250, 555);
+                    draw(dStart.getDate().toString(), 360, 555);
+                }
+
+                const pdfBytesOut = await pdfDoc.save();
+                const blob = new Blob([pdfBytesOut], { type: "application/pdf" });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `ใบลา_${type}_${user.name}.pdf`;
+                link.click();
+            } catch (err) {
+                console.error(err);
+                alert("❌ ไม่พบไฟล์ PDF หรือ Font ใน GitHub\nกรุณาตรวจสอบชื่อไฟล์ form_vacation.pdf และ Sarabun.ttf");
+            }
+        }
+
+        function formatMonth(m) { return ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][m]; }
+
         async function handleSaveAndPrint(e) {
             e.preventDefault();
             const type = document.getElementById('leaveType').value;
-            const startStr = document.getElementById('startDate').value;
-            const endStr = document.getElementById('endDate').value;
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
             const reason = document.getElementById('reason').value;
-
-            // Calculate Days
-            const days = Math.ceil(Math.abs(new Date(endStr) - new Date(startStr)) / (1000 * 60 * 60 * 24)) + 1;
             
-            // Logic: Is it a Cancellation?
+            const days = Math.ceil(Math.abs(new Date(end) - new Date(start))/(1000*60*60*24))+1;
             const isCancel = type === 'cancel';
-            const confirmMsg = isCancel ? 
-                `⚠️ ยืนยันการ "ยกเลิกวันลา" จำนวน ${days} วัน ใช่ไหม?\n(วันลาจะถูกคืนเข้าสู่ระบบ)` : 
-                `ยืนยันการขอลา ${days} วัน?`;
-
-            if(!confirm(confirmMsg)) return;
+            if(!confirm(isCancel ? `ยืนยันยกเลิก ${days} วัน?` : `ยืนยันลา ${days} วัน?`)) return;
 
             const btn = document.getElementById('btn-submit');
-            btn.innerHTML = "⏳ กำลังประมวลผล..."; btn.disabled = true;
+            btn.innerHTML = "⏳ กำลังบันทึก..."; btn.disabled = true;
 
             try {
-                // 1. Save Record to Firestore
-                const record = {
-                    userId: currentUser.id,
-                    userName: currentUser.name,
-                    leaveType: type,
-                    startDate: startStr,
-                    endDate: endStr,
-                    totalDays: days,
-                    reason: reason,
+                const extra = isCancel ? {
+                    cancelTargetType: document.getElementById('cancelTargetType').value,
+                    origStart: document.getElementById('origStart').value,
+                    origEnd: document.getElementById('origEnd').value
+                } : {};
+
+                await db.collection("leave_records").add({
+                    userId: currentUser.id, userName: currentUser.name,
+                    leaveType: type, startDate: start, endDate: end, totalDays: days, reason, ...extra,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                
-                if(isCancel) {
-                    record.cancelTargetType = document.getElementById('cancelTargetType').value;
-                    record.origStart = document.getElementById('origStart').value;
-                    record.origEnd = document.getElementById('origEnd').value;
-                }
+                });
 
-                await db.collection("leave_records").add(record);
-
-                // 2. Update Quota (Cut or Refund)
                 const userRef = db.collection("users").doc(currentUser.id);
-                const updateField = {};
+                const multi = isCancel ? -1 : 1;
+                const target = isCancel ? extra.cancelTargetType : type;
+                const field = target === 'sick' ? 'quota.used_sick' : target === 'personal' ? 'quota.used_personal' : target === 'vacation' ? 'quota.used_vacation' : null;
+                if(field) await userRef.update({ [field]: firebase.firestore.FieldValue.increment(days * multi) });
+
+                await generatePDF(currentUser, type, start, end, reason, extra);
                 
-                // If Cancel, multiply by -1 (to subtract from 'used' = refund)
-                // If Normal Leave, multiply by 1 (to add to 'used')
-                const multiplier = isCancel ? -1 : 1; 
-                
-                // Target type for quota adjustment
-                const targetType = isCancel ? document.getElementById('cancelTargetType').value : type;
-
-                if(targetType === 'sick') updateField['quota.used_sick'] = firebase.firestore.FieldValue.increment(days * multiplier);
-                if(targetType === 'personal') updateField['quota.used_personal'] = firebase.firestore.FieldValue.increment(days * multiplier);
-                if(targetType === 'vacation') updateField['quota.used_vacation'] = firebase.firestore.FieldValue.increment(days * multiplier);
-
-                if(Object.keys(updateField).length > 0) await userRef.update(updateField);
-
-                // 3. Generate PDF (Placeholder for next step)
-                // await generatePDF(currentUser, type, startStr, endStr, reason);
-
-                alert(isCancel ? "✅ ยกเลิกวันลาเรียบร้อย! คืนวันลาให้แล้วครับ" : "✅ บันทึกการลาเรียบร้อย!");
+                alert("✅ เรียบร้อย! กำลังดาวน์โหลด PDF...");
                 location.reload();
-
-            } catch (err) {
-                alert("Error: " + err.message);
-                btn.disabled = false;
-            }
+            } catch (err) { alert(err.message); btn.disabled = false; }
         }
 
-        // --- UI Helpers ---
         function toggleFields() {
             const type = document.getElementById('leaveType').value;
-            const cancelSec = document.getElementById('cancelSection');
-            const labelStart = document.getElementById('labelStartDate');
-            const labelEnd = document.getElementById('labelEndDate');
-            const reasonPH = document.getElementById('reason');
-            const btn = document.getElementById('btn-submit');
-
-            if(type === 'cancel') {
-                cancelSec.style.display = 'block';
-                labelStart.innerText = "❌ ต้องการยกเลิกตั้งแต่วันที่";
-                labelEnd.innerText = "ถึงวันที่";
-                reasonPH.placeholder = "ระบุสาเหตุที่ยกเลิก...";
-                btn.className = "w-full bg-gradient-to-r from-red-400 to-red-600 text-white text-lg py-4 rounded-2xl font-bold shadow-lg shadow-red-200 hover:shadow-xl hover:scale-[1.02] btn-pastel flex justify-center items-center gap-2";
-                btn.innerHTML = "<span>🗑️</span> บันทึกการยกเลิก (และคืนวันลา)";
-            } else {
-                cancelSec.style.display = 'none';
-                labelStart.innerText = "เริ่มวันที่";
-                labelEnd.innerText = "ถึงวันที่";
-                btn.className = "w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white text-lg py-4 rounded-2xl font-bold shadow-lg shadow-pink-200 hover:shadow-xl hover:scale-[1.02] btn-pastel flex justify-center items-center gap-2";
-                btn.innerHTML = "<span>🖨️</span> บันทึกและพิมพ์เอกสาร";
-                
-                if(type === 'sick') reasonPH.placeholder = "ป่วยเป็นไข้หวัด พักที่...";
-                else if(type === 'personal') reasonPH.placeholder = "ทำธุระส่วนตัว ไปจังหวัด...";
-                else reasonPH.placeholder = "ระบุรายละเอียด...";
-            }
+            const isCancel = type === 'cancel';
+            document.getElementById('cancelSection').style.display = isCancel ? 'block' : 'none';
+            document.getElementById('btn-submit').innerHTML = isCancel ? "<span>🗑️</span> ยืนยันการยกเลิก" : "<span>🖨️</span> บันทึกและพิมพ์";
         }
-
-        function switchTab(tab) {
-            document.getElementById('tab-request').style.display = tab === 'request' ? 'block' : 'none';
-            document.getElementById('tab-history').style.display = tab === 'history' ? 'block' : 'none';
-            
-            const btnReq = document.getElementById('btn-tab-request');
-            const btnHis = document.getElementById('btn-tab-history');
-            
-            // Simple class toggling
-            const activeClass = "bg-pink-400 text-white shadow-md";
-            const inactiveClass = "text-gray-500 hover:bg-gray-50";
-            
-            if(tab === 'request') {
-                btnReq.className = `flex-1 py-3 text-center rounded-xl font-bold text-sm ${activeClass}`;
-                btnHis.className = `flex-1 py-3 text-center rounded-xl font-bold text-sm ${inactiveClass}`;
-            } else {
-                btnHis.className = `flex-1 py-3 text-center rounded-xl font-bold text-sm bg-blue-400 text-white shadow-md`;
-                btnReq.className = `flex-1 py-3 text-center rounded-xl font-bold text-sm ${inactiveClass}`;
-            }
+        function switchTab(t) {
+            document.getElementById('tab-request').style.display = t === 'request' ? 'block' : 'none';
+            document.getElementById('tab-history').style.display = t === 'history' ? 'block' : 'none';
         }
-
-        async function loadHistory(userId) {
-            const list = document.getElementById('historyList');
-            const snap = await db.collection("leave_records").where("userId","==",userId).orderBy("timestamp","desc").limit(5).get();
-            list.innerHTML = '';
-            if(snap.empty) { list.innerHTML = '<li class="text-center text-gray-400 py-4 text-sm bg-gray-50 rounded-xl">ยังไม่เคยลาเลย</li>'; return; }
-            snap.forEach(doc => {
-                const d = doc.data();
-                const isCancel = d.leaveType === 'cancel';
-                const colorClass = isCancel ? "bg-red-50 border-red-100" : "bg-white border-gray-100";
-                const statusBadge = isCancel ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold">ยกเลิกแล้ว</span>' : '<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold">สำเร็จ</span>';
-                
-                list.innerHTML += `
-                    <li class="flex justify-between items-center p-3 border rounded-xl shadow-sm ${colorClass}">
-                        <div><p class="font-bold text-gray-700 text-sm">${translateType(d.leaveType)}</p>
-                        <p class="text-xs text-gray-400">${d.startDate} (${d.totalDays} วัน)</p></div>
-                        ${statusBadge}
-                    </li>`;
+        async function loadHistory(uid) {
+            const l = document.getElementById('historyList'); l.innerHTML = '';
+            const s = await db.collection("leave_records").where("userId","==",uid).orderBy("timestamp","desc").limit(5).get();
+            if(s.empty) l.innerHTML = '<li class="text-center text-gray-400 py-4">ยังไม่เคยลา</li>';
+            s.forEach(d => {
+                const data = d.data();
+                l.innerHTML += `<li class="p-3 border rounded-xl flex justify-between bg-white"><div><div class="font-bold text-gray-700">${data.leaveType}</div><div class="text-xs text-gray-400">${data.startDate} (${data.totalDays} วัน)</div></div></li>`;
             });
         }
-        
-        function translateType(t) { return {sick:"ลาป่วย",personal:"ลากิจ",vacation:"ลาพักร้อน",ordination:"ลาบวช",maternity:"ลาคลอด",help_wife:"ช่วยภริยาคลอด",cancel:"ยกเลิกวันลา"}[t] || t; }
         function goHome() { location.reload(); }
 
-        // Start the App
         initSystem();
     </script>
 </body>
