@@ -16,8 +16,7 @@
         body { font-family: 'Sarabun', sans-serif; background: linear-gradient(135deg, #fdfbf7 0%, #eef2f3 100%); }
         .pastel-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05); border: 1px solid rgba(255, 255, 255, 0.5); }
         .hidden-section { display: none; }
-        /* Loader Animation */
-        .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #3498db; width: 40px; height: 40px; -webkit-animation: spin 2s linear infinite; /* Safari */ animation: spin 2s linear infinite; }
+        .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #3498db; width: 40px; height: 40px; animation: spin 2s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
@@ -40,7 +39,7 @@
             <input type="text" id="searchInput" placeholder="พิมพ์ชื่อ..." class="w-full pl-4 p-4 rounded-xl bg-gray-50 border-2 border-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-200 mb-4" onkeyup="filterUsers()">
             <div id="userList" class="h-64 overflow-y-auto space-y-2 pr-2"></div>
         </div>
-        <div class="mt-4 text-xs text-gray-400 text-center">ver. 2.0 (Full Users)</div>
+        <div class="mt-4 text-xs text-gray-400 text-center">ver. 2.1 (Debug Mode)</div>
     </div>
 
     <!-- Dashboard -->
@@ -96,6 +95,11 @@
                         <p class="text-xs text-gray-500 mt-1" id="day-hint">* ลาพักผ่อนนับเฉพาะวันทำการ, ลาป่วยนับทุกวัน</p>
                     </div>
 
+                    <div class="flex items-center mb-4">
+                        <input id="debugCheck" type="checkbox" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="debugCheck" class="ml-2 text-sm font-medium text-gray-900">🛠️ เปิดโหมดช่วยเล็ง (แสดงจุดแดงและพิกัด)</label>
+                    </div>
+
                     <button type="submit" id="btn-submit" class="w-full bg-blue-600 text-white text-lg py-3 rounded-lg font-bold shadow hover:bg-blue-700">
                         🖨️ พิมพ์ใบลา (PDF)
                     </button>
@@ -117,9 +121,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // ============================================
-        // 📋 รายชื่อฉบับเต็ม (Full User List)
-        // ============================================
+        // FULL USERS LIST
         const initialUsers = [
             { id: "u001", rank: "น.ท.หญิง", name: "พัชรินทร์ วงษ์วุฒิศักดิ์", gender: "female", position: "พยาบาล", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
             { id: "u002", rank: "น.ท.หญิง", name: "ขจรจิตต์ ชิณพงศ์", gender: "female", position: "พยาบาล", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
@@ -140,31 +142,25 @@
         let allUsers = [];
         let currentUser = null;
 
-        // --- INIT & SYNC SYSTEM ---
         async function initSystem() {
             try {
                 const snapshot = await db.collection("users").get();
                 const batch = db.batch();
                 let hasUpdates = false;
 
-                // โหลดข้อมูลที่มีอยู่
                 if (!snapshot.empty) {
                     allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 }
 
-                // 🔄 Sync: ตรวจสอบและเพิ่มรายชื่อที่ขาดหายไป
                 initialUsers.forEach(initUser => {
                     const exists = allUsers.find(u => u.id === initUser.id);
                     if (!exists) {
-                        const docRef = db.collection("users").doc(initUser.id);
-                        batch.set(docRef, initUser);
-                        allUsers.push(initUser); // เพิ่มในตัวแปร local ด้วย
+                        batch.set(db.collection("users").doc(initUser.id), initUser);
+                        allUsers.push(initUser);
                         hasUpdates = true;
-                        console.log(`Restoring user: ${initUser.name}`);
                     }
                 });
 
-                // ลบ user ที่ยกเลิก (u014 เอเธน)
                 if (allUsers.find(u => u.id === 'u014')) {
                     batch.delete(db.collection("users").doc('u014'));
                     allUsers = allUsers.filter(u => u.id !== 'u014');
@@ -172,8 +168,6 @@
                 }
 
                 if (hasUpdates) await batch.commit();
-
-                // Sort เรียงตามรหัส
                 allUsers.sort((a, b) => a.id.localeCompare(b.id));
 
                 document.getElementById('loading-screen').style.display = 'none';
@@ -181,8 +175,6 @@
                 renderUserList(allUsers);
 
             } catch (error) { 
-                alert("Database Error: " + error.message); 
-                // Fallback กรณีเน็ตหลุด ให้ใช้ข้อมูล local ไปก่อน
                 allUsers = initialUsers;
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('screen-home').style.display = 'flex';
@@ -220,9 +212,8 @@
         }
 
         // ============================================
-        // 🖨️ PDF LOGIC (ฉบับราชการไทย เป๊ะ!)
+        // 🖨️ PDF LOGIC
         // ============================================
-        
         function toThaiNum(num) {
             if(num === null || num === undefined) return '';
             const thaiDigits = ['๐','๑','๒','๓','๔','๕','๖','๗','๘','๙'];
@@ -235,14 +226,9 @@
 
         async function generatePDF(user, type, start, end, reason, extra) {
             try {
-                // ไฟล์ PDF ต้นฉบับใน GitHub
                 const fileMap = { 
-                    'vacation': 'form_vacation.pdf', 
-                    'sick': 'form_sick.pdf', 
-                    'personal': 'form_personal.pdf',
-                    'ordination': 'form_ordination.pdf',
-                    'maternity': 'form_maternity.pdf',
-                    'help_wife': 'form_help_wife.pdf',
+                    'vacation': 'form_vacation.pdf', 'sick': 'form_sick.pdf', 'personal': 'form_personal.pdf',
+                    'ordination': 'form_ordination.pdf', 'maternity': 'form_maternity.pdf', 'help_wife': 'form_help_wife.pdf',
                     'cancel': 'form_cancel.pdf'
                 };
                 
@@ -253,13 +239,18 @@
                 pdfDoc.registerFontkit(fontkit);
                 const thaiFont = await pdfDoc.embedFont(fontBytes);
                 const page = pdfDoc.getPages()[0];
+                const isDebug = document.getElementById('debugCheck').checked;
                 
-                // Helper เขียนข้อความ (x, y)
+                // Helper เขียนข้อความ พร้อม Debug
                 const draw = (text, x, y, size=16) => {
                     page.drawText(toThaiNum(text) || '', { x, y, size, font: thaiFont, color: PDFLib.rgb(0,0,0) });
+                    // ถ้าเปิด Debug ให้จุดสีแดงและบอกพิกัด
+                    if(isDebug) {
+                        page.drawCircle({ x, y, size: 2, color: PDFLib.rgb(1, 0, 0) });
+                        page.drawText(`(${x},${y})`, { x: x+5, y: y+2, size: 8, font: thaiFont, color: PDFLib.rgb(1, 0, 0) });
+                    }
                 };
 
-                // Helper ขีดฆ่า (Strike through)
                 const strike = (x, y, width=30) => {
                     page.drawLine({ start: { x, y: y+5 }, end: { x: x+width, y: y+5 }, thickness: 1, color: PDFLib.rgb(0,0,0) });
                 };
@@ -276,40 +267,32 @@
                 draw(formatMonth(now.getMonth()), 475, 730); // เดือน
                 draw(now.getFullYear()+543, 530, 730); // พ.ศ.
 
-                // เรียน (เลือกได้)
+                // เรียน
                 const toText = toWhom === 'head' ? 'หน.ผสภ.กวป.พอ.' : 'ผอ.กวป.พอ.';
                 draw(toText, 90, 690);
 
                 // --- 2. ข้อมูลผู้ลา ---
-                // ขีดฆ่าคำนำหน้า (กระผม/ดิฉัน)
-                // พิกัดคำว่า "กระผม" (x~125) "ดิฉัน" (x~165)
                 if (user.gender === 'male') {
                     strike(165, 655, 30); // ขีดทับ "ดิฉัน"
                 } else {
                     strike(125, 655, 30); // ขีดทับ "กระผม"
                 }
 
-                // ชื่อ-สกุล
-                draw(`${user.rank} ${user.name}`, 220, 655);
-                
-                // ตำแหน่ง
-                draw(user.position || '-', 380, 655); 
-                
-                // สังกัด
-                draw('กวป.พอ.', 100, 630); // บรรทัดสังกัด
+                draw(`${user.rank} ${user.name}`, 220, 655); // ชื่อ
+                draw(user.position || '-', 380, 655); // ตำแหน่ง
+                draw('กวป.พอ.', 100, 630); // สังกัด
 
-                // --- 3. เนื้อหาการลา (เฉพาะใบลาพักผ่อน - แบบ ๗) ---
+                // --- 3. เฉพาะใบลาพักผ่อน (แบบ ๗) ---
                 if (type === 'vacation') {
-                    
-                    // มีกำหนด ... วัน
+                    // กำหนด ... วัน
                     draw(totalDays, 250, 580); 
 
                     // ตั้งแต่วันที่
                     draw(dStart.getDate(), 350, 580);
                     draw(formatMonth(dStart.getMonth()), 400, 580);
-                    draw((dStart.getFullYear()+543).toString().slice(-2), 480, 580); // พ.ศ. ย่อ
+                    draw((dStart.getFullYear()+543).toString().slice(-2), 480, 580);
 
-                    // ถึงวันที่ (บรรทัดถัดมาด้านซ้าย)
+                    // ถึงวันที่
                     draw(dEnd.getDate(), 90, 555); 
                     draw(formatMonth(dEnd.getMonth()), 130, 555);
                     draw((dEnd.getFullYear()+543).toString().slice(-2), 190, 555);
@@ -320,10 +303,8 @@
                     // ไปจังหวัด
                     draw(reason, 230, 530); 
 
-                    // ==========================================
                     // ส่วนท้าย: "ในวันที่... และกลับในวันที่..."
-                    // ==========================================
-                    // วันที่ (เริ่มลา)
+                    // วันเริ่มลา
                     draw(dStart.getDate(), 130, 505);
                     draw(formatMonth(dStart.getMonth()), 180, 505);
                     draw((dStart.getFullYear()+543).toString().slice(-2), 260, 505);
@@ -344,7 +325,7 @@
 
             } catch (err) {
                 console.error(err);
-                alert("เกิดข้อผิดพลาดในการสร้างไฟล์: " + err.message);
+                alert("เกิดข้อผิดพลาด: " + err.message);
             }
         }
 
@@ -362,7 +343,6 @@
             
             await generatePDF(currentUser, type, start, end, reason, {});
             
-            // Clear Form & Reset Button
             document.getElementById('leaveForm').reset();
             btn.innerText = originalText;
             btn.disabled = false;
@@ -380,10 +360,8 @@
                 while(cur <= e) {
                     const day = cur.getDay();
                     if(type === 'sick') {
-                        // ลาป่วย นับทุกวัน
                         count++;
                     } else {
-                        // ลาอื่นๆ นับเฉพาะ จันทร์-ศุกร์
                         if(day !== 0 && day !== 6) count++;
                     }
                     cur.setDate(cur.getDate() + 1);
@@ -392,13 +370,10 @@
             }
         });
         
-        // อัปเดตคำแนะนำเมื่อเปลี่ยนประเภทลา
         document.getElementById('leaveType').addEventListener('change', (e) => {
              const hint = document.getElementById('day-hint');
              if(e.target.value === 'sick') hint.innerText = "* ลาป่วย นับรวมวันหยุดราชการ";
              else hint.innerText = "* ลาประเภทนี้ นับเฉพาะวันทำการ (จันทร์-ศุกร์)";
-             
-             // Trigger recalculate
              document.getElementById('endDate').dispatchEvent(new Event('change'));
         });
 
