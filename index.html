@@ -334,7 +334,9 @@
         async function handleSaveAndPrint(e) {
             e.preventDefault();
             const btn = document.getElementById('btn-submit');
-            btn.innerHTML = "⏳ กำลังทำงาน..."; btn.disabled = true;
+            const originalText = btn.innerHTML; // เก็บข้อความเดิม
+            btn.innerHTML = "⏳ กำลังทำงาน..."; 
+            btn.disabled = true;
 
             const type = document.getElementById('leaveType').value;
             const start = document.getElementById('startDate').value;
@@ -343,10 +345,10 @@
             const days = Math.ceil(Math.abs(new Date(end) - new Date(start))/(1000*60*60*24))+1;
 
             try {
-                // 1. Generate PDF First (Check file existence before saving data)
+                // 1. Generate PDF First (โหลดไฟล์ให้เสร็จก่อนเซฟข้อมูล)
                 await generatePDF(currentUser, type, start, end, reason, {});
                 
-                // 2. If PDF ok, Save to DB
+                // 2. Save to DB
                 await db.collection("leave_records").add({
                     userId: currentUser.id, userName: currentUser.name,
                     leaveType: type, startDate: start, endDate: end, totalDays: days, reason,
@@ -362,11 +364,20 @@
                 
                 if(field) await userRef.update({ [field]: firebase.firestore.FieldValue.increment(days) });
 
-                alert("✅ สำเร็จ! ใบลาถูกดาวน์โหลดแล้ว");
-                location.reload();
+                alert("✅ บันทึกเรียบร้อย! ไฟล์ PDF ควรจะเริ่มดาวน์โหลดครับ");
+                
+                // **แก้ไข**: ไม่ใช้ location.reload() แต่เคลียร์ฟอร์มแทน
+                document.getElementById('leaveForm').reset();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                
+                // อัปเดตประวัติการลาที่หน้าจอทันที
+                loadHistory(currentUser.id);
+                
             } catch (err) {
-                // Error handled in generatePDF
-                btn.innerHTML = "ลองใหม่อีกครั้ง";
+                // Error handled
+                alert("เกิดข้อผิดพลาด: " + err.message);
+                btn.innerHTML = originalText;
                 btn.disabled = false;
             }
         }
