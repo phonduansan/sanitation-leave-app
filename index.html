@@ -285,10 +285,10 @@
                 // --- 3. เฉพาะใบลาพักผ่อน (แบบ ๗) ---
                 if (type === 'vacation') {
                     // กำหนด ... วัน
-                    draw(totalDays, 310, 600); 
+                    draw(totalDays, 315, 600); 
 
                     // ตั้งแต่วันที่
-                    draw(dStart.getDate(), 442, 600);
+                    draw(dStart.getDate(), 445, 600);
                     draw(formatMonth(dStart.getMonth()), 110, 578);
                     draw((dStart.getFullYear()+543).toString().slice(-2), 225, 578);
 
@@ -305,14 +305,14 @@
 
                     // ส่วนท้าย: "ในวันที่... และกลับในวันที่..."
                     // วันเริ่มลา
-                    draw(dStart.getDate(), 110, 535);
+                    draw(dStart.getDate(), 115, 535);
                     draw(formatMonth(dStart.getMonth()), 230, 535);
                     draw((dStart.getFullYear()+543).toString().slice(-2), 345, 535);
 
                     // วันกลับ
-                    draw(dEnd.getDate(), 455, 535);
+                    draw(dEnd.getDate(), 460, 535);
                     draw(formatMonth(dEnd.getMonth()), 125, 515);
-                    draw((dEnd.getFullYear()+543).toString().slice(-2), 200, 515);
+                    draw((dEnd.getFullYear()+543).toString().slice(-2), 212, 515);
                 }
 
                 // Save
