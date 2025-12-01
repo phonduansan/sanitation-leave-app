@@ -16,12 +16,15 @@
         body { font-family: 'Sarabun', sans-serif; background: linear-gradient(135deg, #fdfbf7 0%, #eef2f3 100%); }
         .pastel-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05); border: 1px solid rgba(255, 255, 255, 0.5); }
         .hidden-section { display: none; }
+        /* Loader Animation */
+        .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #3498db; width: 40px; height: 40px; -webkit-animation: spin 2s linear infinite; /* Safari */ animation: spin 2s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="text-gray-700">
 
     <div id="loading-screen" class="fixed inset-0 bg-pink-50 z-50 flex flex-col items-center justify-center">
-        <div class="animate-bounce text-6xl mb-4">🐰</div>
+        <div class="loader mb-4"></div>
         <p class="text-pink-400 text-xl font-bold animate-pulse">กำลังโหลดข้อมูล...</p>
     </div>
 
@@ -37,6 +40,7 @@
             <input type="text" id="searchInput" placeholder="พิมพ์ชื่อ..." class="w-full pl-4 p-4 rounded-xl bg-gray-50 border-2 border-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-200 mb-4" onkeyup="filterUsers()">
             <div id="userList" class="h-64 overflow-y-auto space-y-2 pr-2"></div>
         </div>
+        <div class="mt-4 text-xs text-gray-400 text-center">ver. 2.0 (Full Users)</div>
     </div>
 
     <!-- Dashboard -->
@@ -55,10 +59,9 @@
             <div class="pastel-card p-6 bg-white mb-6">
                 <form id="leaveForm" onsubmit="handleSaveAndPrint(event)">
                     
-                    <!-- 1. เลือกประเภท -->
                     <div class="mb-4">
                         <label class="block text-gray-700 font-bold mb-2">ประเภทการลา</label>
-                        <select id="leaveType" class="w-full p-3 rounded-lg border bg-gray-50" onchange="toggleFields()">
+                        <select id="leaveType" class="w-full p-3 rounded-lg border bg-gray-50">
                             <option value="vacation">🏖️ ลาพักผ่อน (แบบ ๗)</option>
                             <option value="sick">😷 ลาป่วย (แบบ ๓)</option>
                             <option value="personal">🚗 ลากิจ (แบบ ๖)</option>
@@ -69,32 +72,28 @@
                         </select>
                     </div>
 
-                    <!-- 2. เรียนใคร (เฉพาะราชการ) -->
-                    <div class="mb-4" id="toWhomSection">
+                    <div class="mb-4">
                         <label class="block text-gray-700 font-bold mb-2">เรียน (ผู้บังคับบัญชา)</label>
                         <select id="toWhom" class="w-full p-3 rounded-lg border bg-gray-50">
-                            <option value="director">ผอ.กวป.พอ.</option>
                             <option value="head">หน.ผสภ.กวป.พอ.</option>
+                            <option value="director">ผอ.กวป.พอ.</option>
                         </select>
                     </div>
 
-                    <!-- 3. วันที่ -->
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div><label class="block text-gray-600 text-sm mb-1">เริ่มวันที่</label><input type="date" id="startDate" class="w-full p-3 rounded-lg border" required></div>
                         <div><label class="block text-gray-600 text-sm mb-1">ถึงวันที่</label><input type="date" id="endDate" class="w-full p-3 rounded-lg border" required></div>
                     </div>
 
-                    <!-- 4. รายละเอียด (จังหวัด/สถานที่) -->
                     <div class="mb-4">
-                        <label id="reasonLabel" class="block text-gray-700 font-bold mb-2">ไปจังหวัด / สถานที่ติดต่อ</label>
+                        <label class="block text-gray-700 font-bold mb-2">ไปจังหวัด / สถานที่ติดต่อ</label>
                         <input type="text" id="reason" class="w-full p-3 rounded-lg border" placeholder="เช่น จ.เชียงใหม่, พักที่บ้านเลขที่..." required>
                     </div>
 
-                    <!-- 5. จำนวนวัน (คำนวณอัตโนมัติ แต่แก้ได้) -->
                     <div class="mb-6">
-                        <label class="block text-gray-700 font-bold mb-2">จำนวนวันลา (วันทำการ)</label>
-                        <input type="number" id="totalDays" class="w-full p-3 rounded-lg border bg-yellow-50" placeholder="ระบบคำนวณให้..." >
-                        <p class="text-xs text-red-500 mt-1">* กรุณาตรวจสอบจำนวนวันทำการให้ถูกต้อง (หักวันหยุดเอง)</p>
+                        <label class="block text-gray-700 font-bold mb-2">จำนวนวันลา</label>
+                        <input type="number" id="totalDays" class="w-full p-3 rounded-lg border bg-yellow-50" placeholder="ระบบคำนวณให้...">
+                        <p class="text-xs text-gray-500 mt-1" id="day-hint">* ลาพักผ่อนนับเฉพาะวันทำการ, ลาป่วยนับทุกวัน</p>
                     </div>
 
                     <button type="submit" id="btn-submit" class="w-full bg-blue-600 text-white text-lg py-3 rounded-lg font-bold shadow hover:bg-blue-700">
@@ -106,7 +105,6 @@
     </div>
 
     <script>
-        // CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyAxgj4sKMUdMQJWj2hU2rbcT4eZ926sskQ",
             authDomain: "leave-system-online.firebaseapp.com",
@@ -119,25 +117,77 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // DATA (เพิ่ม field 'gender' เพื่อใช้ขีดฆ่าคำนำหน้า)
+        // ============================================
+        // 📋 รายชื่อฉบับเต็ม (Full User List)
+        // ============================================
         const initialUsers = [
-            { id: "u001", rank: "น.ท.หญิง", name: "พัชรินทร์ วงษ์วุฒิศักดิ์", gender: "female", position: "พยาบาล", quota: {} },
-            { id: "u003", rank: "น.ต.", name: "ธณกร พึ่งพิมาย", gender: "male", position: "นายทหาร", quota: {} },
-            { id: "u015", rank: "นาย", name: "อภิรักษ์ นิลเกษม", gender: "male", position: "จนท.ธุรการ", quota: {} },
-            // ... (ใส่รายชื่ออื่นๆ เพิ่มตรงนี้ได้เลย)
+            { id: "u001", rank: "น.ท.หญิง", name: "พัชรินทร์ วงษ์วุฒิศักดิ์", gender: "female", position: "พยาบาล", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u002", rank: "น.ท.หญิง", name: "ขจรจิตต์ ชิณพงศ์", gender: "female", position: "พยาบาล", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u003", rank: "น.ต.", name: "ธณกร พึ่งพิมาย", gender: "male", position: "นายทหาร", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u004", rank: "น.ต.หญิง", name: "กานต์พิชชา เชาวลิต", gender: "female", position: "นายทหาร", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u005", rank: "ร.อ.หญิง", name: "รุ่งทิวา รัตน์อ่อน", gender: "female", position: "นายทหาร", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u006", rank: "ร.อ.หญิง", name: "อภิราม สธนกุล", gender: "female", position: "นายทหาร", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u007", rank: "ร.อ.หญิง", name: "ตรีฐิตา อินทะชัย", gender: "female", position: "นายทหาร", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u008", rank: "พ.อ.อ.", name: "นพพร อรุณฉาย", gender: "male", position: "เจ้าหน้าที่", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u009", rank: "พ.อ.อ.หญิง", name: "สุธิมา ศิริพิพัฒน์พงษ์", gender: "female", position: "เจ้าหน้าที่", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u010", rank: "พ.อ.ต.", name: "ภูริพงษ์ สลางสิงห์", gender: "male", position: "เจ้าหน้าที่", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u011", rank: "นาย", name: "กฤษดา คงกัลป์", gender: "male", position: "พนักงานราชการ", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u012", rank: "นาย", name: "ประเสริฐ ทับแถม", gender: "male", position: "ลูกจ้างประจำ", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u013", rank: "น.ส.", name: "เสาวณีย์ อินกาย", gender: "female", position: "พนักงานราชการ", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } },
+            { id: "u015", rank: "นาย", name: "อภิรักษ์ นิลเกษม", gender: "male", position: "พนักงานราชการ", quota: { sick: 60, personal: 45, vacation: 10, used_sick: 0, used_personal: 0, used_vacation: 0 } }
         ];
 
         let allUsers = [];
         let currentUser = null;
 
-        // INIT
+        // --- INIT & SYNC SYSTEM ---
         async function initSystem() {
-            // (ส่วนโหลดข้อมูล Firebase เหมือนเดิม ขอละไว้เพื่อความกระชับ)
-            // ใช้ Mock Data ไปก่อนเพื่อความเร็วในการทดสอบ
-            allUsers = initialUsers;
-            renderUserList(allUsers);
-            document.getElementById('loading-screen').style.display = 'none';
-            document.getElementById('screen-home').style.display = 'flex';
+            try {
+                const snapshot = await db.collection("users").get();
+                const batch = db.batch();
+                let hasUpdates = false;
+
+                // โหลดข้อมูลที่มีอยู่
+                if (!snapshot.empty) {
+                    allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                }
+
+                // 🔄 Sync: ตรวจสอบและเพิ่มรายชื่อที่ขาดหายไป
+                initialUsers.forEach(initUser => {
+                    const exists = allUsers.find(u => u.id === initUser.id);
+                    if (!exists) {
+                        const docRef = db.collection("users").doc(initUser.id);
+                        batch.set(docRef, initUser);
+                        allUsers.push(initUser); // เพิ่มในตัวแปร local ด้วย
+                        hasUpdates = true;
+                        console.log(`Restoring user: ${initUser.name}`);
+                    }
+                });
+
+                // ลบ user ที่ยกเลิก (u014 เอเธน)
+                if (allUsers.find(u => u.id === 'u014')) {
+                    batch.delete(db.collection("users").doc('u014'));
+                    allUsers = allUsers.filter(u => u.id !== 'u014');
+                    hasUpdates = true;
+                }
+
+                if (hasUpdates) await batch.commit();
+
+                // Sort เรียงตามรหัส
+                allUsers.sort((a, b) => a.id.localeCompare(b.id));
+
+                document.getElementById('loading-screen').style.display = 'none';
+                document.getElementById('screen-home').style.display = 'flex';
+                renderUserList(allUsers);
+
+            } catch (error) { 
+                alert("Database Error: " + error.message); 
+                // Fallback กรณีเน็ตหลุด ให้ใช้ข้อมูล local ไปก่อน
+                allUsers = initialUsers;
+                document.getElementById('loading-screen').style.display = 'none';
+                document.getElementById('screen-home').style.display = 'flex';
+                renderUserList(allUsers);
+            }
         }
 
         function renderUserList(users) {
@@ -145,8 +195,13 @@
             list.innerHTML = '';
             users.forEach(u => {
                 const div = document.createElement('div');
-                div.className = 'p-3 border-b cursor-pointer hover:bg-gray-100 flex justify-between';
-                div.innerHTML = `<span>${u.rank} ${u.name}</span> <span class="text-xs text-gray-400">เลือก ></span>`;
+                div.className = 'p-3 border-b cursor-pointer hover:bg-gray-100 flex justify-between items-center';
+                div.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs mr-3 text-blue-600 font-bold">${u.id.replace('u','')}</div>
+                        <span>${u.rank} ${u.name}</span>
+                    </div>
+                    <span class="text-xs text-gray-400">เลือก ></span>`;
                 div.onclick = () => selectUser(u);
                 list.appendChild(div);
             });
@@ -154,7 +209,7 @@
 
         function filterUsers() {
             const val = document.getElementById('searchInput').value;
-            renderUserList(val ? allUsers.filter(u => u.name.includes(val)) : allUsers);
+            renderUserList(val ? allUsers.filter(u => u.name.includes(val) || u.rank.includes(val)) : allUsers);
         }
 
         function selectUser(u) {
@@ -168,25 +223,29 @@
         // 🖨️ PDF LOGIC (ฉบับราชการไทย เป๊ะ!)
         // ============================================
         
-        // 1. ฟังก์ชันแปลงเลขไทย ๐-๙
         function toThaiNum(num) {
             if(num === null || num === undefined) return '';
             const thaiDigits = ['๐','๑','๒','๓','๔','๕','๖','๗','๘','๙'];
             return num.toString().split('').map(char => thaiDigits[char] || char).join('');
         }
 
-        // 2. ฟังก์ชันแปลงเดือนไทย (ย่อ)
         function formatMonth(m) { 
             return ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][m]; 
         }
 
         async function generatePDF(user, type, start, end, reason, extra) {
             try {
-                // Mapping ชื่อไฟล์
-                const fileMap = { 'vacation': 'form_vacation.pdf' };
-                if(!fileMap[type]) { alert("ขออภัย ระบบกำลังอัปเดตฟอร์มประเภทนี้ครับ"); return; }
-
-                // โหลด Font & PDF
+                // ไฟล์ PDF ต้นฉบับใน GitHub
+                const fileMap = { 
+                    'vacation': 'form_vacation.pdf', 
+                    'sick': 'form_sick.pdf', 
+                    'personal': 'form_personal.pdf',
+                    'ordination': 'form_ordination.pdf',
+                    'maternity': 'form_maternity.pdf',
+                    'help_wife': 'form_help_wife.pdf',
+                    'cancel': 'form_cancel.pdf'
+                };
+                
                 const fontBytes = await fetch('./Sarabun.ttf').then(res => res.arrayBuffer());
                 const pdfBytes = await fetch('./' + fileMap[type]).then(res => res.arrayBuffer());
                 
@@ -212,48 +271,48 @@
                 const toWhom = document.getElementById('toWhom').value;
 
                 // --- 1. ส่วนหัว (Header) ---
-                draw('ผสภ.กวป.พอ.', 430, 755); // เขียนที่
-                draw(now.getDate(), 450, 730);      // วันที่
-                draw(formatMonth(now.getMonth()), 495, 730); // เดือน
-                draw(now.getFullYear()+543, 545, 730); // พ.ศ.
+                draw('ผสภ.กวป.พอ.', 380, 755); // เขียนที่
+                draw(now.getDate(), 430, 730);      // วันที่
+                draw(formatMonth(now.getMonth()), 475, 730); // เดือน
+                draw(now.getFullYear()+543, 530, 730); // พ.ศ.
 
                 // เรียน (เลือกได้)
                 const toText = toWhom === 'head' ? 'หน.ผสภ.กวป.พอ.' : 'ผอ.กวป.พอ.';
-                draw(toText, 100, 690);
+                draw(toText, 90, 690);
 
                 // --- 2. ข้อมูลผู้ลา ---
                 // ขีดฆ่าคำนำหน้า (กระผม/ดิฉัน)
-                // พิกัดคำว่า "กระผม" ประมาณ x=130, "ดิฉัน" ประมาณ x=160 (ต้องเล็งจากไฟล์จริง)
+                // พิกัดคำว่า "กระผม" (x~125) "ดิฉัน" (x~165)
                 if (user.gender === 'male') {
-                    strike(165, 655, 25); // ขีดทับ "ดิฉัน"
+                    strike(165, 655, 30); // ขีดทับ "ดิฉัน"
                 } else {
-                    strike(130, 655, 30); // ขีดทับ "กระผม"
+                    strike(125, 655, 30); // ขีดทับ "กระผม"
                 }
 
-                // ชื่อ-สกุล (เติมต่อท้าย)
-                draw(`${user.rank} ${user.name}`, 200, 655);
+                // ชื่อ-สกุล
+                draw(`${user.rank} ${user.name}`, 220, 655);
                 
                 // ตำแหน่ง
                 draw(user.position || '-', 380, 655); 
                 
                 // สังกัด
-                draw('กวป.พอ.', 120, 630);
+                draw('กวป.พอ.', 100, 630); // บรรทัดสังกัด
 
                 // --- 3. เนื้อหาการลา (เฉพาะใบลาพักผ่อน - แบบ ๗) ---
                 if (type === 'vacation') {
                     
                     // มีกำหนด ... วัน
-                    draw(totalDays, 280, 580); 
+                    draw(totalDays, 250, 580); 
 
                     // ตั้งแต่วันที่
-                    draw(dStart.getDate(), 370, 580);
-                    draw(formatMonth(dStart.getMonth()), 415, 580);
-                    draw((dStart.getFullYear()+543).toString().slice(-2), 485, 580); // เอาแค่ 2 ตัวท้าย
+                    draw(dStart.getDate(), 350, 580);
+                    draw(formatMonth(dStart.getMonth()), 400, 580);
+                    draw((dStart.getFullYear()+543).toString().slice(-2), 480, 580); // พ.ศ. ย่อ
 
-                    // ถึงวันที่
-                    draw(dEnd.getDate(), 100, 555); // *พิกัดเดาว่าอยู่บรรทัดใหม่ซ้ายสุด
-                    draw(formatMonth(dEnd.getMonth()), 140, 555);
-                    draw((dEnd.getFullYear()+543).toString().slice(-2), 200, 555);
+                    // ถึงวันที่ (บรรทัดถัดมาด้านซ้าย)
+                    draw(dEnd.getDate(), 90, 555); 
+                    draw(formatMonth(dEnd.getMonth()), 130, 555);
+                    draw((dEnd.getFullYear()+543).toString().slice(-2), 190, 555);
 
                     // ขีดฆ่าคำนำหน้า (บรรทัด "ในระหว่างลา...")
                     if (user.gender === 'male') strike(170, 530, 25); else strike(135, 530, 30);
@@ -261,8 +320,18 @@
                     // ไปจังหวัด
                     draw(reason, 230, 530); 
 
-                    // วันที่ (ด้านล่างซ้าย ที่บอกวันเริ่มลา)
-                    // ... (ถ้ามีช่องให้เติมอีก)
+                    // ==========================================
+                    // ส่วนท้าย: "ในวันที่... และกลับในวันที่..."
+                    // ==========================================
+                    // วันที่ (เริ่มลา)
+                    draw(dStart.getDate(), 130, 505);
+                    draw(formatMonth(dStart.getMonth()), 180, 505);
+                    draw((dStart.getFullYear()+543).toString().slice(-2), 260, 505);
+
+                    // วันกลับ
+                    draw(dEnd.getDate(), 320, 505);
+                    draw(formatMonth(dEnd.getMonth()), 360, 505);
+                    draw((dEnd.getFullYear()+543).toString().slice(-2), 440, 505);
                 }
 
                 // Save
@@ -281,40 +350,58 @@
 
         async function handleSaveAndPrint(e) {
             e.preventDefault();
-            document.getElementById('btn-submit').innerText = "⏳ กำลังสร้างไฟล์...";
+            const btn = document.getElementById('btn-submit');
+            const originalText = btn.innerText;
+            btn.innerText = "⏳ กำลังสร้างไฟล์...";
+            btn.disabled = true;
             
             const type = document.getElementById('leaveType').value;
             const start = document.getElementById('startDate').value;
             const end = document.getElementById('endDate').value;
             const reason = document.getElementById('reason').value;
             
-            // เรียกฟังก์ชันสร้าง PDF
             await generatePDF(currentUser, type, start, end, reason, {});
             
-            document.getElementById('btn-submit').innerText = "🖨️ พิมพ์ใบลา (PDF)";
+            // Clear Form & Reset Button
+            document.getElementById('leaveForm').reset();
+            btn.innerText = originalText;
+            btn.disabled = false;
         }
 
-        function toggleFields() {
-            // (ฟังก์ชันเปลี่ยนประเภทลา - ซ่อนไว้ก่อน)
-        }
-
-        // Auto Calc Days (นับวันทำการคร่าวๆ - ไม่รวม ส-อา)
+        // Logic นับวัน
         document.getElementById('endDate').addEventListener('change', () => {
             const s = new Date(document.getElementById('startDate').value);
             const e = new Date(document.getElementById('endDate').value);
+            const type = document.getElementById('leaveType').value;
+            
             if(s && e) {
                 let count = 0;
                 let cur = new Date(s);
                 while(cur <= e) {
                     const day = cur.getDay();
-                    if(day !== 0 && day !== 6) count++; // ไม่นับเสาร์อาทิตย์
+                    if(type === 'sick') {
+                        // ลาป่วย นับทุกวัน
+                        count++;
+                    } else {
+                        // ลาอื่นๆ นับเฉพาะ จันทร์-ศุกร์
+                        if(day !== 0 && day !== 6) count++;
+                    }
                     cur.setDate(cur.getDate() + 1);
                 }
                 document.getElementById('totalDays').value = count;
             }
         });
+        
+        // อัปเดตคำแนะนำเมื่อเปลี่ยนประเภทลา
+        document.getElementById('leaveType').addEventListener('change', (e) => {
+             const hint = document.getElementById('day-hint');
+             if(e.target.value === 'sick') hint.innerText = "* ลาป่วย นับรวมวันหยุดราชการ";
+             else hint.innerText = "* ลาประเภทนี้ นับเฉพาะวันทำการ (จันทร์-ศุกร์)";
+             
+             // Trigger recalculate
+             document.getElementById('endDate').dispatchEvent(new Event('change'));
+        });
 
-        // Run
         initSystem();
     </script>
 </body>
