@@ -269,7 +269,7 @@
 
                 // เรียน
                 const toText = toWhom === 'head' ? 'หน.ผสภ.กวป.พอ.' : 'ผอ.กวป.พอ.';
-                draw(toText, 90, 690);
+                draw(toText, 95, 660);
 
                 // --- 2. ข้อมูลผู้ลา ---
                 if (user.gender === 'male') {
@@ -278,41 +278,41 @@
                     strike(125, 655, 30); // ขีดทับ "กระผม"
                 }
 
-                draw(`${user.rank} ${user.name}`, 220, 655); // ชื่อ
-                draw(user.position || '-', 380, 655); // ตำแหน่ง
+                draw(`${user.rank} ${user.name}`, 218, 630); // ชื่อ
+                draw(user.position || '-', 382, 630); // ตำแหน่ง
                 draw('กวป.พอ.', 100, 630); // สังกัด
 
                 // --- 3. เฉพาะใบลาพักผ่อน (แบบ ๗) ---
                 if (type === 'vacation') {
                     // กำหนด ... วัน
-                    draw(totalDays, 250, 580); 
+                    draw(totalDays, 300, 600); 
 
                     // ตั้งแต่วันที่
-                    draw(dStart.getDate(), 350, 580);
-                    draw(formatMonth(dStart.getMonth()), 400, 580);
-                    draw((dStart.getFullYear()+543).toString().slice(-2), 480, 580);
+                    draw(dStart.getDate(), 432, 600);
+                    draw(formatMonth(dStart.getMonth()), 105, 578);
+                    draw((dStart.getFullYear()+543).toString().slice(-2), 225, 578);
 
                     // ถึงวันที่
-                    draw(dEnd.getDate(), 90, 555); 
-                    draw(formatMonth(dEnd.getMonth()), 130, 555);
-                    draw((dEnd.getFullYear()+543).toString().slice(-2), 190, 555);
+                    draw(dEnd.getDate(), 380, 578); 
+                    draw(formatMonth(dEnd.getMonth()), 475, 578);
+                    draw((dEnd.getFullYear()+543).toString().slice(-2), 95, 555);
 
                     // ขีดฆ่าคำนำหน้า (บรรทัด "ในระหว่างลา...")
                     if (user.gender === 'male') strike(170, 530, 25); else strike(135, 530, 30);
 
                     // ไปจังหวัด
-                    draw(reason, 230, 530); 
+                    draw(reason, 350, 555); 
 
                     // ส่วนท้าย: "ในวันที่... และกลับในวันที่..."
                     // วันเริ่มลา
-                    draw(dStart.getDate(), 130, 505);
-                    draw(formatMonth(dStart.getMonth()), 180, 505);
-                    draw((dStart.getFullYear()+543).toString().slice(-2), 260, 505);
+                    draw(dStart.getDate(), 105, 535);
+                    draw(formatMonth(dStart.getMonth()), 230, 535);
+                    draw((dStart.getFullYear()+543).toString().slice(-2), 345, 535);
 
                     // วันกลับ
-                    draw(dEnd.getDate(), 320, 505);
-                    draw(formatMonth(dEnd.getMonth()), 360, 505);
-                    draw((dEnd.getFullYear()+543).toString().slice(-2), 440, 505);
+                    draw(dEnd.getDate(), 450, 535);
+                    draw(formatMonth(dEnd.getMonth()), 126, 512);
+                    draw((dEnd.getFullYear()+543).toString().slice(-2), 190, 512);
                 }
 
                 // Save
