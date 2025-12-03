@@ -39,7 +39,7 @@
             <input type="text" id="searchInput" placeholder="พิมพ์ชื่อ..." class="w-full pl-4 p-4 rounded-xl bg-gray-50 border-2 border-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-200 mb-4" onkeyup="filterUsers()">
             <div id="userList" class="h-64 overflow-y-auto space-y-2 pr-2"></div>
         </div>
-        <div class="mt-4 text-xs text-gray-400 text-center">ver. 2.7 (User Coordinates + No Whiteout)</div>
+        <div class="mt-4 text-xs text-gray-400 text-center">ver. 2.8 (Auto Position)</div>
     </div>
 
     <!-- Dashboard -->
@@ -80,10 +80,10 @@
                             </select>
                         </div>
 
-                        <!-- ตำแหน่ง (แก้ไขได้) -->
+                        <!-- ตำแหน่ง (Auto-filled) -->
                         <div class="mb-4">
                             <label class="block text-gray-700 font-bold mb-2">ตำแหน่ง</label>
-                            <input type="text" id="userPosition" class="w-full p-3 rounded-lg border bg-blue-50" placeholder="ระบุตำแหน่งของคุณ...">
+                            <input type="text" id="userPosition" class="w-full p-3 rounded-lg border bg-blue-50 text-gray-600" placeholder="ระบุตำแหน่งของคุณ..." readonly>
                         </div>
 
                         <div class="mb-4">
@@ -150,7 +150,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // USERS DATA
+        // USERS DATA (อัปเดตตำแหน่งใหม่ตามที่ขอ)
         const initialUsers = [
             { id: "u001", rank: "น.ท.หญิง", name: "พัชรินทร์ วงษ์วุฒิศักดิ์", gender: "female", position: "น.สุขาภิบาล ผสภ.กวป.พอ.", quota: { sick: 60, personal: 45, vacation: 10 } },
             { id: "u002", rank: "น.ท.หญิง", name: "ขจรจิตต์ ชิณพงศ์", gender: "female", position: "ประจำ พอ.", quota: { sick: 60, personal: 45, vacation: 10 } },
@@ -187,6 +187,11 @@
                     if (!exists) {
                         batch.set(db.collection("users").doc(initUser.id), initUser);
                         allUsers.push(initUser);
+                        hasUpdates = true;
+                    } else if (exists.position !== initUser.position) {
+                        // อัปเดตตำแหน่งให้ตรงกับข้อมูลใหม่
+                        batch.update(db.collection("users").doc(initUser.id), { position: initUser.position });
+                        exists.position = initUser.position;
                         hasUpdates = true;
                     }
                 });
@@ -239,7 +244,10 @@
             document.getElementById('screen-home').style.display = 'none';
             document.getElementById('screen-dashboard').style.display = 'block';
             document.getElementById('user-fullname').innerText = `${u.rank} ${u.name}`;
+            
+            // Auto-fill Position
             document.getElementById('userPosition').value = u.position || '';
+            
             listenToHistory(u.id);
         }
 
@@ -378,14 +386,14 @@
                 // 📍 จุดขีดฆ่า (คำนำหน้า)
                 if (user.gender === 'male') {
                     // ขีดทับ "ดิฉัน" (เล็งที่ x=165)
-                    strike(165, 655, 30); 
+                    strike(210, 625, 15); 
                 } else {
                     // ขีดทับ "กระผม" (เล็งที่ x=125)
-                    strike(125, 655, 30); 
+                    strike(200, 625, 15); 
                 }
 
                 draw(`${user.rank} ${user.name}`, 216, 625); // ชื่อ
-                draw(userPos || '-', 390, 625); // ตำแหน่ง
+                draw(userPos || '-', 395, 625); // ตำแหน่ง
                 // (ลบ draw 'กวป.พอ.' ออกตามคำขอ)
 
                 // --- 3. เฉพาะใบลาพักผ่อน (แบบ ๗) ---
@@ -406,10 +414,10 @@
                     // 📍 จุดขีดฆ่า (ในเนื้อหา)
                     if (user.gender === 'male') {
                         // ขีดทับ "ดิฉัน"
-                        strike(170, 530, 25); 
+                        strike(235, 556, 15); 
                     } else {
                         // ขีดทับ "กระผม"
-                        strike(135, 530, 30); 
+                        strike(220, 556, 15); 
                     }
 
                     // ไปจังหวัด
