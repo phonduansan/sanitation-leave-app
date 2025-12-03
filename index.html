@@ -39,7 +39,7 @@
             <input type="text" id="searchInput" placeholder="พิมพ์ชื่อ..." class="w-full pl-4 p-4 rounded-xl bg-gray-50 border-2 border-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-200 mb-4" onkeyup="filterUsers()">
             <div id="userList" class="h-64 overflow-y-auto space-y-2 pr-2"></div>
         </div>
-        <div class="mt-4 text-xs text-gray-400 text-center">ver. 2.4 (New Coordinates)</div>
+        <div class="mt-4 text-xs text-gray-400 text-center">ver. 2.5 (PDF Patching)</div>
     </div>
 
     <!-- Dashboard -->
@@ -240,7 +240,6 @@
             document.getElementById('screen-dashboard').style.display = 'block';
             document.getElementById('user-fullname').innerText = `${u.rank} ${u.name}`;
             document.getElementById('userPosition').value = u.position || '';
-            
             listenToHistory(u.id);
         }
 
@@ -265,7 +264,6 @@
                         const isCancel = d.leaveType === 'cancel';
                         const colorClass = isCancel ? "bg-red-50 border-red-200" : "bg-white border-gray-200";
                         const typeText = translateType(d.leaveType);
-                        
                         list.innerHTML += `
                             <li class="p-3 border rounded-lg shadow-sm ${colorClass} flex justify-between items-center">
                                 <div>
@@ -277,13 +275,13 @@
                             </li>`;
                     });
                 }, (error) => {
-                    console.error("Error fetching history:", error);
+                    console.error("History Error:", error);
                     list.innerHTML = '<li class="text-center text-red-400 py-4">โหลดข้อมูลไม่สำเร็จ (ตรวจสอบ Index)</li>';
                 });
         }
 
         function translateType(t) {
-            const map = { 'vacation': 'ลาพักผ่อน', 'sick': 'ลาป่วย', 'personal': 'ลากิจ', 'ordination': 'ลาบวช', 'maternity': 'ลาคลอด', 'help_wife': 'ลาช่วยภริยา', 'cancel': 'ยกเลิกวันลา' };
+            const map = { 'vacation': 'ลาพักผ่อน', 'sick': 'ลาป่วย', 'personal': 'ลากิจ', 'overseas': 'ลาพักผ่อนต่างประเทศ', 'cancel': 'ยกเลิกวันลา' };
             return map[t] || t;
         }
 
@@ -313,7 +311,7 @@
         }
 
         // ============================================
-        // 🖨️ PDF LOGIC
+        // 🖨️ PDF LOGIC (White-out & Redraw)
         // ============================================
         function toThaiNum(num) {
             if(num === null || num === undefined) return '';
@@ -327,6 +325,7 @@
 
         async function generatePDF(user, type, start, end, reason, extra) {
             try {
+                // ใช้ไฟล์ PDF เดิมที่มี (เพราะเราจะใช้วิธีลบทับ)
                 const fileMap = { 
                     'vacation': 'form_vacation.pdf', 'sick': 'form_sick.pdf', 'personal': 'form_personal.pdf',
                     'ordination': 'form_ordination.pdf', 'maternity': 'form_maternity.pdf', 'help_wife': 'form_help_wife.pdf',
@@ -350,12 +349,17 @@
                     }
                 };
 
+                // ฟังก์ชันลบคำผิด (วาดสี่เหลี่ยมสีขาวทับ)
+                const whiteOut = (x, y, w, h) => {
+                    page.drawRectangle({ x, y, width: w, height: h, color: PDFLib.rgb(1, 1, 1) });
+                };
+
                 const dStart = new Date(start);
                 const dEnd = new Date(end);
                 const now = new Date();
                 const totalDays = document.getElementById('totalDays').value || '0';
                 const toWhom = document.getElementById('toWhom').value;
-                const userPos = document.getElementById('userPosition').value; // เอาจาก input โดยตรง
+                const userPos = document.getElementById('userPosition').value;
 
                 // --- 1. ส่วนหัว (Header) ---
                 draw('ผสภ.กวป.พอ.', 430, 740); // เขียนที่
@@ -363,17 +367,28 @@
                 draw(formatMonth(now.getMonth()), 420, 720); // เดือน
                 draw(now.getFullYear()+543, 493, 720); // พ.ศ.
 
-                // เรียน
                 const toText = toWhom === 'head' ? 'หน.ผสภ.กวป.พอ.' : 'ผอ.กวป.พอ.';
                 draw(toText, 100, 675);
 
-                // --- 2. ข้อมูลผู้ลา ---
-                // (ขีดฆ่าปิดไว้ก่อน)
-                // if (user.gender === 'male') strike... 
+                // --- 2. ข้อมูลผู้ลา (ลบของเดิม แล้วเขียนใหม่) ---
+                
+                // ลบคำว่า "กวป.พอ." ที่ติดมากับฟอร์ม
+                // พิกัดประมาณ x=90, y=630, กว้าง=60, สูง=20 (ต้องเล็งดีๆ)
+                whiteOut(90, 625, 60, 20); 
+                draw('กวป.พอ.', 100, 630); // เขียนใหม่ให้ชัด
+
+                // ลบ "กระผม/ดิฉัน" เดิมทิ้ง
+                whiteOut(160, 650, 60, 20); // ลบคำนำหน้าเดิม
+                
+                // เขียนใหม่ตามเพศ
+                if (user.gender === 'male') {
+                    draw('กระผม', 165, 655); 
+                } else {
+                    draw('ดิฉัน', 165, 655); 
+                }
 
                 draw(`${user.rank} ${user.name}`, 216, 625); // ชื่อ
-                draw(userPos || '-', 390, 625); // ตำแหน่ง (จาก Input)
-                // draw('กวป.พอ.', 100, 630); // สังกัด (ลบออกตามสั่ง)
+                draw(userPos || '-', 390, 625); // ตำแหน่ง
 
                 // --- 3. เฉพาะใบลาพักผ่อน (แบบ ๗) ---
                 if (type === 'vacation') {
@@ -389,6 +404,10 @@
                     draw(dEnd.getDate(), 375, 578); 
                     draw(formatMonth(dEnd.getMonth()), 470, 578);
                     draw((dEnd.getFullYear()+543).toString().slice(-2), 96, 556);
+
+                    // ลบ "กระผม/ดิฉัน" ในเนื้อหาทิ้ง (บรรทัด "ในระหว่างลา...")
+                    whiteOut(170, 525, 60, 20); 
+                    if (user.gender === 'male') draw('กระผม', 180, 530); else draw('ดิฉัน', 180, 530);
 
                     // ไปจังหวัด
                     draw(reason, 350, 556); 
