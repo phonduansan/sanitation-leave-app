@@ -39,7 +39,7 @@
             <input type="text" id="searchInput" placeholder="พิมพ์ชื่อ..." class="w-full pl-4 p-4 rounded-xl bg-gray-50 border-2 border-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-200 mb-4" onkeyup="filterUsers()">
             <div id="userList" class="h-64 overflow-y-auto space-y-2 pr-2"></div>
         </div>
-        <div class="mt-4 text-xs text-gray-400 text-center">ver. 2.8 (Auto Position)</div>
+        <div class="mt-4 text-xs text-gray-400 text-center">ver. 3.1 (Exact Coordinates)</div>
     </div>
 
     <!-- Dashboard -->
@@ -113,7 +113,7 @@
                         <div class="flex items-center mb-4 space-x-4">
                             <div class="flex items-center">
                                 <input id="debugCheck" type="checkbox" class="w-4 h-4 text-red-600 border-gray-300 rounded">
-                                <label for="debugCheck" class="ml-2 text-sm text-gray-700">โหมดช่วยเล็ง (จุดแดง)</label>
+                                <label for="debugCheck" class="ml-2 text-sm text-gray-700">โหมดช่วยเล็ง (จุดแดง🔴)</label>
                             </div>
                         </div>
 
@@ -125,9 +125,6 @@
 
                 <!-- HISTORY SECTION -->
                 <div id="section-history" class="hidden-section">
-                    <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4 text-sm text-yellow-800">
-                        ⚠️ <b>หากประวัติไม่ขึ้น:</b> กรุณากด F12 ดู Error ใน Console แล้วคลิกลิงก์เพื่อสร้าง Index ใน Firebase (ลิงก์ยาวๆ)
-                    </div>
                     <ul id="historyList" class="space-y-3 max-h-96 overflow-y-auto">
                         <li class="text-center text-gray-400 py-4">กำลังโหลดข้อมูล...</li>
                     </ul>
@@ -150,7 +147,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // USERS DATA (อัปเดตตำแหน่งใหม่ตามที่ขอ)
+        // USERS DATA (อัปเดตตำแหน่งใหม่)
         const initialUsers = [
             { id: "u001", rank: "น.ท.หญิง", name: "พัชรินทร์ วงษ์วุฒิศักดิ์", gender: "female", position: "น.สุขาภิบาล ผสภ.กวป.พอ.", quota: { sick: 60, personal: 45, vacation: 10 } },
             { id: "u002", rank: "น.ท.หญิง", name: "ขจรจิตต์ ชิณพงศ์", gender: "female", position: "ประจำ พอ.", quota: { sick: 60, personal: 45, vacation: 10 } },
@@ -189,18 +186,11 @@
                         allUsers.push(initUser);
                         hasUpdates = true;
                     } else if (exists.position !== initUser.position) {
-                        // อัปเดตตำแหน่งให้ตรงกับข้อมูลใหม่
                         batch.update(db.collection("users").doc(initUser.id), { position: initUser.position });
                         exists.position = initUser.position;
                         hasUpdates = true;
                     }
                 });
-
-                if (allUsers.find(u => u.id === 'u014')) {
-                    batch.delete(db.collection("users").doc('u014'));
-                    allUsers = allUsers.filter(u => u.id !== 'u014');
-                    hasUpdates = true;
-                }
 
                 if (hasUpdates) await batch.commit();
                 allUsers.sort((a, b) => a.id.localeCompare(b.id));
@@ -244,10 +234,7 @@
             document.getElementById('screen-home').style.display = 'none';
             document.getElementById('screen-dashboard').style.display = 'block';
             document.getElementById('user-fullname').innerText = `${u.rank} ${u.name}`;
-            
-            // Auto-fill Position
             document.getElementById('userPosition').value = u.position || '';
-            
             listenToHistory(u.id);
         }
 
@@ -284,7 +271,7 @@
                     });
                 }, (error) => {
                     console.error("History Error:", error);
-                    list.innerHTML = '<li class="text-center text-red-400 py-4">โหลดข้อมูลไม่สำเร็จ (คลิก F12 ดู Console เพื่อสร้าง Index)</li>';
+                    list.innerHTML = '<li class="text-center text-red-400 py-4">โหลดข้อมูลไม่สำเร็จ (คลิก F12 สร้าง Index)</li>';
                 });
         }
 
@@ -319,7 +306,7 @@
         }
 
         // ============================================
-        // 🖨️ PDF LOGIC
+        // 🖨️ PDF LOGIC (COORDINATES MATCHED TO IMAGE)
         // ============================================
         function toThaiNum(num) {
             if(num === null || num === undefined) return '';
@@ -333,7 +320,6 @@
 
         async function generatePDF(user, type, start, end, reason, extra) {
             try {
-                // ไฟล์ PDF ต้นฉบับใน GitHub (ชื่อตามที่คุณอัปโหลด)
                 const fileMap = { 
                     'vacation': 'form_vacation.pdf', 'sick': 'form_sick.pdf', 'personal': 'form_personal.pdf',
                     'ordination': 'form_ordination.pdf', 'maternity': 'form_maternity.pdf', 'help_wife': 'form_help_wife.pdf',
@@ -357,10 +343,9 @@
                     }
                 };
 
-                const strike = (x, y, width=30) => {
+                const strike = (x, y, width=15) => { // ความยาวขีด 15 หน่วย
                     page.drawLine({ start: { x, y: y+5 }, end: { x: x+width, y: y+5 }, thickness: 1, color: PDFLib.rgb(0,0,0) });
                     if(isDebug) {
-                        // 📍 จุดเล็งเป้าขีดฆ่า (สีแดง)
                         page.drawCircle({ x, y: y+5, size: 3, color: PDFLib.rgb(1, 0, 0) }); 
                     }
                 };
@@ -373,28 +358,24 @@
                 const userPos = document.getElementById('userPosition').value;
 
                 // --- 1. ส่วนหัว (Header) ---
-                draw('ผสภ.กวป.พอ.', 430, 740); // เขียนที่
-                draw(now.getDate(), 353, 720); // วันที่
-                draw(formatMonth(now.getMonth()), 420, 720); // เดือน
-                draw(now.getFullYear()+543, 493, 720); // พ.ศ.
+                draw('ผสภ.กวป.พอ.', 430, 740); 
+                draw(now.getDate(), 353, 720); 
+                draw(formatMonth(now.getMonth()), 420, 720); 
+                draw(now.getFullYear()+543, 493, 720); 
 
                 const toText = toWhom === 'head' ? 'หน.ผสภ.กวป.พอ.' : 'ผอ.กวป.พอ.';
                 draw(toText, 100, 675);
 
                 // --- 2. ข้อมูลผู้ลา ---
-                
-                // 📍 จุดขีดฆ่า (คำนำหน้า)
+                // ขีดฆ่าคำนำหน้า (ใช้พิกัดมาตรฐานที่เล็งไว้)
                 if (user.gender === 'male') {
-                    // ขีดทับ "ดิฉัน" (เล็งที่ x=165)
-                    strike(186, 620, 15); 
+                    strike(165, 655); // ขีด "ดิฉัน"
                 } else {
-                    // ขีดทับ "กระผม" (เล็งที่ x=125)
-                    strike(171, 620, 20); 
+                    strike(125, 655); // ขีด "กระผม"
                 }
 
-                draw(`${user.rank} ${user.name}`, 213, 625); // ชื่อ
-                draw(userPos || '-', 398, 625); // ตำแหน่ง
-                // (ลบ draw 'กวป.พอ.' ออกตามคำขอ)
+                draw(`${user.rank} ${user.name}`, 216, 625); // ชื่อ
+                draw(userPos || '-', 390, 625); // ตำแหน่ง (ไม่มี กวป.พอ. แล้ว)
 
                 // --- 3. เฉพาะใบลาพักผ่อน (แบบ ๗) ---
                 if (type === 'vacation') {
@@ -411,13 +392,11 @@
                     draw(formatMonth(dEnd.getMonth()), 470, 578);
                     draw((dEnd.getFullYear()+543).toString().slice(-2), 96, 556);
 
-                    // 📍 จุดขีดฆ่า (ในเนื้อหา)
+                    // ขีดฆ่า "กระผม/ดิฉัน" (ในเนื้อหา)
                     if (user.gender === 'male') {
-                        // ขีดทับ "ดิฉัน"
-                        strike(260, 553, 15); 
+                        strike(170, 530); // ขีด "ดิฉัน"
                     } else {
-                        // ขีดทับ "กระผม"
-                        strike(220, 553, 15); 
+                        strike(135, 530); // ขีด "กระผม"
                     }
 
                     // ไปจังหวัด
